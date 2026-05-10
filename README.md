@@ -6,7 +6,7 @@ Central licence management for Kasa products and future software releases.
 
 - Multiple products such as Kasa Enterprise and Kasa Starter Kit
 - Buyer records from Envato, direct sales, or manual admin entry
-- Unique licence key generation
+- Unique licence key generation with encrypted admin recovery
 - One or more allowed activations per licence
 - Activation, check-in, deactivation, suspension, refund, and revoke flows
 - Signed activation response for client apps
@@ -37,7 +37,7 @@ Email: admin@kasa.test
 Password: Password@123
 ```
 
-The seed command prints demo licence keys once. After creation, full keys are not stored, only secure hashes and masked previews.
+The seed command prints demo licence keys once. New keys are stored as secure hashes plus encrypted recovery copies so admins can reveal or download them later.
 
 ## Environment
 
@@ -107,4 +107,5 @@ Content-Type: application/json
 - Set long random values for `SESSION_SECRET` and `LICENSE_SIGNING_SECRET`.
 - Keep this portal private behind admin login.
 - Do not log full licence keys after creation; store only hashes and masked previews.
+- Keep `LICENSE_SIGNING_SECRET` stable. It is also used to decrypt stored licence recovery copies.
 - For marketplace sales, store the platform and purchase reference with each licence.

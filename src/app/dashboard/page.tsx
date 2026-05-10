@@ -3,7 +3,8 @@ import {
   Archive,
   Boxes,
   CheckCircle2,
-  Copy,
+  Download,
+  Eye,
   KeyRound,
   LogOut,
   MonitorCheck,
@@ -12,6 +13,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
+import Link from "next/link";
 import {
   createLicenseAction,
   createProductAction,
@@ -20,7 +22,9 @@ import {
   toggleProductStatusAction,
   updateLicenseStatusAction,
 } from "@/app/actions";
+import { LicenseKeyActions } from "@/components/license-key-actions";
 import { requireAdmin } from "@/lib/auth";
+import { decryptLicenseKey } from "@/lib/crypto";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -91,6 +95,12 @@ export default async function DashboardPage({
             <div className="hidden rounded-2xl border border-white/10 px-4 py-2 text-sm text-slate-300 sm:block">
               {admin.name}
             </div>
+            <Link
+              href="/account/password"
+              className="rounded-2xl border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/10"
+            >
+              Change password
+            </Link>
             <form action={logoutAction}>
               <button className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/10">
                 <LogOut size={16} /> Logout
@@ -132,11 +142,9 @@ export default async function DashboardPage({
               <div>
                 <p className="text-sm font-semibold text-emerald-200">New license key generated</p>
                 <p className="mt-2 font-mono text-lg text-white">{params.newKey}</p>
-                <p className="mt-1 text-sm text-slate-400">Save this now. Later only the masked preview is shown.</p>
+                <p className="mt-1 text-sm text-slate-400">You can copy or download it now. It is also stored encrypted for admin recovery.</p>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-300">
-                <Copy size={16} /> Copy from this page
-              </div>
+              <LicenseKeyActions licenseKey={params.newKey} />
             </div>
           </section>
         ) : null}
@@ -254,7 +262,30 @@ export default async function DashboardPage({
                       <p className="text-slate-400">{license.buyerEmail}</p>
                     </td>
                     <td>{license.product.name}</td>
-                    <td className="font-mono text-emerald-300">{license.keyPreview}</td>
+                    <td>
+                      <div className="font-mono text-emerald-300">{license.keyPreview}</div>
+                      {(() => {
+                        const fullKey = decryptLicenseKey(license.keyEncrypted);
+                        return fullKey ? (
+                          <details className="mt-2 max-w-sm rounded-2xl border border-white/10 bg-slate-950/80 p-3">
+                            <summary className="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-200">
+                              <Eye size={14} /> Reveal full key
+                            </summary>
+                            <p className="mt-3 break-all font-mono text-xs text-white">{fullKey}</p>
+                            <div className="mt-3">
+                              <LicenseKeyActions
+                                licenseKey={fullKey}
+                                filename={`${license.product.slug}-${license.keyPreview.replace(/[^a-zA-Z0-9]/g, "-")}.txt`}
+                              />
+                            </div>
+                          </details>
+                        ) : (
+                          <p className="mt-2 max-w-xs text-xs text-amber-200">
+                            Full key is unavailable for this older hashed-only record. Reissue a new key if needed.
+                          </p>
+                        );
+                      })()}
+                    </td>
                     <td>{license.plan}</td>
                     <td>{license.status}</td>
                     <td>
@@ -262,6 +293,7 @@ export default async function DashboardPage({
                     </td>
                     <td>{formatDate(license.expiresAt)}</td>
                     <td>
+                      <div className="flex flex-wrap gap-2">
                       <form action={updateLicenseStatusAction} className="flex gap-2">
                         <input type="hidden" name="licenseId" value={license.id} />
                         <select name="status" defaultValue={license.status} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2">
@@ -273,6 +305,15 @@ export default async function DashboardPage({
                         </select>
                         <button className="rounded-xl border border-white/10 px-3 py-2 hover:bg-white/10">Save</button>
                       </form>
+                      {license.keyEncrypted ? (
+                        <a
+                          href={`/api/admin/licenses/${license.id}/download`}
+                          className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 hover:bg-white/10"
+                        >
+                          <Download size={14} /> TXT
+                        </a>
+                      ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}

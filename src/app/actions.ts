@@ -3,7 +3,7 @@
 import { LicenseStatus, PlanType, ProductStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createLicenseKey, previewLicenseKey, sha256 } from "@/lib/crypto";
+import { createLicenseKey, encryptLicenseKey, previewLicenseKey, sha256 } from "@/lib/crypto";
 import {
   createSession,
   destroySession,
@@ -20,6 +20,7 @@ import {
   loginSchema,
   productSchema,
   setupSchema,
+  changePasswordSchema,
 } from "@/lib/validators";
 
 function formObject(formData: FormData) {
@@ -121,6 +122,7 @@ export async function createLicenseAction(formData: FormData) {
       productId: parsed.productId,
       keyHash: sha256(key),
       keyPreview: previewLicenseKey(key),
+      keyEncrypted: encryptLicenseKey(key),
       buyerName: parsed.buyerName || null,
       buyerEmail: parsed.buyerEmail.toLowerCase(),
       platform: parsed.platform,
@@ -133,6 +135,29 @@ export async function createLicenseAction(formData: FormData) {
   });
 
   redirect(`/dashboard?newKey=${encodeURIComponent(key)}`);
+}
+
+export async function changePasswordAction(formData: FormData) {
+  const admin = await requireAdmin();
+  const result = changePasswordSchema.safeParse(formObject(formData));
+  if (!result.success) {
+    redirect("/account/password?error=invalid");
+  }
+  const parsed = result.data;
+  const record = await prisma.adminUser.findUniqueOrThrow({
+    where: { id: admin.id },
+  });
+
+  if (!(await verifyPassword(parsed.currentPassword, record.passwordHash))) {
+    redirect("/account/password?error=current");
+  }
+
+  await prisma.adminUser.update({
+    where: { id: admin.id },
+    data: { passwordHash: await hashPassword(parsed.newPassword) },
+  });
+
+  redirect("/account/password?success=1");
 }
 
 export async function updateLicenseStatusAction(formData: FormData) {

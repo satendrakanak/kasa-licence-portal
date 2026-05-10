@@ -58,6 +58,7 @@ model License {
   product        Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
   keyHash        String              @unique
   keyPreview     String
+  keyEncrypted   String?
   buyerName      String?
   buyerEmail     String
   platform       String              @default("manual")

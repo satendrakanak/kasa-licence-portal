@@ -20,6 +20,23 @@ function previewLicenseKey(key) {
   return `${parts[0]}-${parts[1]}-****-****-${parts[4]}`;
 }
 
+function getEncryptionKey() {
+  const secret = process.env.LICENSE_SIGNING_SECRET || process.env.SESSION_SECRET;
+  if (!secret || secret.length < 24) {
+    throw new Error("LICENSE_SIGNING_SECRET must be at least 24 characters long.");
+  }
+
+  return crypto.createHash("sha256").update(secret).digest();
+}
+
+function encryptLicenseKey(key) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", getEncryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(key.trim().toUpperCase(), "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return [iv, tag, encrypted].map((part) => part.toString("base64url")).join(".");
+}
+
 async function upsertLicense({ productId, productPrefix, buyerName, buyerEmail, platform, purchaseRef, maxActivations }) {
   const existing = await prisma.license.findFirst({
     where: { buyerEmail, productId },
@@ -33,6 +50,7 @@ async function upsertLicense({ productId, productPrefix, buyerName, buyerEmail, 
       productId,
       keyHash: sha256(key),
       keyPreview: previewLicenseKey(key),
+      keyEncrypted: encryptLicenseKey(key),
       buyerName,
       buyerEmail,
       platform,

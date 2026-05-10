@@ -41,6 +41,17 @@ export const deactivateActivationSchema = z.object({
   activationId: z.string().min(1),
 });
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(8),
+    confirmPassword: z.string().min(8),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
 export const activationSchema = z.object({
   licenseKey: z.string().min(8),
   productSlug: z.string().min(2),
