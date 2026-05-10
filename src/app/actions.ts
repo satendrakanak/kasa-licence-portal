@@ -170,7 +170,8 @@ export async function updateLicenseStatusAction(formData: FormData) {
     data: { status: parsed.status as LicenseStatus },
   });
 
-  redirect("/dashboard?licenseStatus=updated");
+  revalidatePath("/dashboard");
+  return { ok: true, message: "License status updated." };
 }
 
 export async function deleteUnusedLicenseAction(formData: FormData) {
@@ -186,14 +187,17 @@ export async function deleteUnusedLicenseAction(formData: FormData) {
   });
 
   if (!license) {
-    redirect("/dashboard?licenseDelete=missing");
+    return { ok: false, message: "License could not be found." };
   }
 
   const hasActiveInstallations = license.activations.some(
     (activation) => activation.status === "ACTIVE",
   );
   if (hasActiveInstallations) {
-    redirect("/dashboard?licenseDelete=active");
+    return {
+      ok: false,
+      message: "Deactivate active installations before deleting this license.",
+    };
   }
 
   await prisma.auditLog.create({
@@ -212,7 +216,8 @@ export async function deleteUnusedLicenseAction(formData: FormData) {
     where: { id: license.id },
   });
 
-  redirect("/dashboard?licenseDelete=success");
+  revalidatePath("/dashboard");
+  return { ok: true, message: "Unused license deleted successfully." };
 }
 
 export async function toggleProductStatusAction(formData: FormData) {

@@ -3,7 +3,6 @@ import {
   Archive,
   Boxes,
   CheckCircle2,
-  Download,
   Eye,
   KeyRound,
   LogOut,
@@ -11,7 +10,6 @@ import {
   PackagePlus,
   PauseCircle,
   ShieldCheck,
-  Trash2,
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -19,12 +17,11 @@ import {
   createLicenseAction,
   createProductAction,
   deactivateActivationAction,
-  deleteUnusedLicenseAction,
   logoutAction,
   toggleProductStatusAction,
-  updateLicenseStatusAction,
 } from "@/app/actions";
 import { LicenseKeyActions } from "@/components/license-key-actions";
+import { LicenseRowActions, LicenseStatusControl } from "@/components/license-table-controls";
 import { requireAdmin } from "@/lib/auth";
 import { decryptLicenseKey } from "@/lib/crypto";
 import { prisma } from "@/lib/prisma";
@@ -53,7 +50,7 @@ function stat(label: string, value: string | number, helper: string) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ newKey?: string; licenseDelete?: string; licenseStatus?: string }>;
+  searchParams: Promise<{ newKey?: string }>;
 }) {
   const admin = await requireAdmin();
   const params = await searchParams;
@@ -148,28 +145,6 @@ export default async function DashboardPage({
               </div>
               <LicenseKeyActions licenseKey={params.newKey} />
             </div>
-          </section>
-        ) : null}
-
-        {params.licenseDelete ? (
-          <section
-            className={`rounded-3xl border p-5 ${
-              params.licenseDelete === "success"
-                ? "border-emerald-300/40 bg-emerald-400/10 text-emerald-100"
-                : "border-amber-300/40 bg-amber-400/10 text-amber-100"
-            }`}
-          >
-            {params.licenseDelete === "success"
-              ? "Unused license deleted successfully."
-              : params.licenseDelete === "active"
-                ? "This license has an active installation. Deactivate the installation before deleting it."
-                : "License could not be found."}
-          </section>
-        ) : null}
-
-        {params.licenseStatus === "updated" ? (
-          <section className="rounded-3xl border border-emerald-300/40 bg-emerald-400/10 p-5 text-emerald-100">
-            License status updated successfully.
           </section>
         ) : null}
 
@@ -334,24 +309,7 @@ export default async function DashboardPage({
                       </span>
                     </td>
                     <td className="px-4 py-5 align-top">
-                      <form action={updateLicenseStatusAction} className="space-y-2">
-                        <input type="hidden" name="licenseId" value={license.id} />
-                        <select
-                          key={`${license.id}-${license.status}`}
-                          name="status"
-                          defaultValue={license.status}
-                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm outline-none"
-                        >
-                          {["ACTIVE", "SUSPENDED", "EXPIRED", "REVOKED", "REFUNDED"].map((status) => (
-                            <option key={status} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
-                        <button className="w-full rounded-xl border border-white/10 px-3 py-2 text-sm hover:bg-white/10">
-                          Save status
-                        </button>
-                      </form>
+                      <LicenseStatusControl licenseId={license.id} status={license.status} />
                     </td>
                     <td className="px-4 py-5 align-top">
                       <span className="rounded-full border border-white/10 px-3 py-1 text-sm">
@@ -360,30 +318,11 @@ export default async function DashboardPage({
                     </td>
                     <td className="px-4 py-5 align-top text-slate-300">{formatDate(license.expiresAt)}</td>
                     <td className="px-4 py-5 align-top">
-                      <div className="flex flex-col items-stretch gap-2">
-                        {license.keyEncrypted ? (
-                          <a
-                            href={`/api/admin/licenses/${license.id}/download`}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-3 py-2 hover:bg-white/10"
-                          >
-                            <Download size={14} /> TXT
-                          </a>
-                        ) : null}
-                        <form action={deleteUnusedLicenseAction}>
-                          <input type="hidden" name="licenseId" value={license.id} />
-                          <button
-                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 px-3 py-2 text-red-200 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
-                            disabled={license.activations.some((activation) => activation.status === "ACTIVE")}
-                            title={
-                              license.activations.some((activation) => activation.status === "ACTIVE")
-                                ? "Deactivate active installations before deleting this license."
-                                : "Delete unused license"
-                            }
-                          >
-                            <Trash2 size={14} /> Delete
-                          </button>
-                        </form>
-                      </div>
+                      <LicenseRowActions
+                        licenseId={license.id}
+                        canDelete={!license.activations.some((activation) => activation.status === "ACTIVE")}
+                        hasDownload={Boolean(license.keyEncrypted)}
+                      />
                     </td>
                   </tr>
                 ))}
