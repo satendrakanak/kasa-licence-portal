@@ -170,7 +170,7 @@ export async function updateLicenseStatusAction(formData: FormData) {
     data: { status: parsed.status as LicenseStatus },
   });
 
-  revalidatePath("/dashboard");
+  redirect("/dashboard?licenseStatus=updated");
 }
 
 export async function deleteUnusedLicenseAction(formData: FormData) {

@@ -53,7 +53,7 @@ function stat(label: string, value: string | number, helper: string) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ newKey?: string; licenseDelete?: string }>;
+  searchParams: Promise<{ newKey?: string; licenseDelete?: string; licenseStatus?: string }>;
 }) {
   const admin = await requireAdmin();
   const params = await searchParams;
@@ -167,6 +167,12 @@ export default async function DashboardPage({
           </section>
         ) : null}
 
+        {params.licenseStatus === "updated" ? (
+          <section className="rounded-3xl border border-emerald-300/40 bg-emerald-400/10 p-5 text-emerald-100">
+            License status updated successfully.
+          </section>
+        ) : null}
+
         <section className="grid gap-4 md:grid-cols-4">
           {stat("Products", productCount, "Future products can share this portal")}
           {stat("Licenses", licenseCount, "Marketplace and direct buyers")}
@@ -258,34 +264,52 @@ export default async function DashboardPage({
             <ShieldCheck className="text-emerald-300" />
             <h2 className="text-2xl font-semibold">Recent licenses</h2>
           </div>
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left text-sm">
-              <thead className="text-slate-400">
+          <div className="mt-5 overflow-x-auto rounded-3xl border border-white/10">
+            <table className="w-full min-w-[1280px] table-fixed text-left text-sm">
+              <colgroup>
+                <col className="w-[250px]" />
+                <col className="w-[190px]" />
+                <col className="w-[350px]" />
+                <col className="w-[115px]" />
+                <col className="w-[190px]" />
+                <col className="w-[130px]" />
+                <col className="w-[150px]" />
+                <col className="w-[210px]" />
+              </colgroup>
+              <thead className="bg-slate-950/70 text-slate-400">
                 <tr className="border-b border-white/10">
-                  <th className="py-3">Buyer</th>
-                  <th>Product</th>
-                  <th>Key</th>
-                  <th>Plan</th>
-                  <th>Status</th>
-                  <th>Activations</th>
-                  <th>Expires</th>
-                  <th>Action</th>
+                  <th className="px-4 py-4">Buyer</th>
+                  <th className="px-4 py-4">Product</th>
+                  <th className="px-4 py-4">License key</th>
+                  <th className="px-4 py-4">Plan</th>
+                  <th className="px-4 py-4">Status</th>
+                  <th className="px-4 py-4">Installs</th>
+                  <th className="px-4 py-4">Expiry</th>
+                  <th className="px-4 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {licenses.map((license) => (
-                  <tr key={license.id} className="border-b border-white/10">
-                    <td className="py-4">
-                      <p className="font-semibold">{license.buyerName || "Unnamed buyer"}</p>
-                      <p className="text-slate-400">{license.buyerEmail}</p>
+                  <tr key={license.id} className="border-b border-white/10 last:border-0">
+                    <td className="px-4 py-5 align-top">
+                      <p className="break-words font-semibold">{license.buyerName || "Unnamed buyer"}</p>
+                      <p className="mt-1 break-all text-slate-400">{license.buyerEmail}</p>
+                      {license.purchaseRef ? (
+                        <p className="mt-2 text-xs text-slate-500">{license.platform} · {license.purchaseRef}</p>
+                      ) : (
+                        <p className="mt-2 text-xs text-slate-500">{license.platform}</p>
+                      )}
                     </td>
-                    <td>{license.product.name}</td>
-                    <td>
-                      <div className="font-mono text-emerald-300">{license.keyPreview}</div>
+                    <td className="px-4 py-5 align-top">
+                      <p className="break-words font-medium">{license.product.name}</p>
+                      <p className="mt-1 font-mono text-xs text-emerald-300">{license.product.slug}</p>
+                    </td>
+                    <td className="px-4 py-5 align-top">
+                      <div className="break-all font-mono text-emerald-300">{license.keyPreview}</div>
                       {(() => {
                         const fullKey = decryptLicenseKey(license.keyEncrypted);
                         return fullKey ? (
-                          <details className="mt-2 max-w-sm rounded-2xl border border-white/10 bg-slate-950/80 p-3">
+                          <details className="mt-3 rounded-2xl border border-white/10 bg-slate-950/80 p-3">
                             <summary className="inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-200">
                               <Eye size={14} /> Reveal full key
                             </summary>
@@ -298,53 +322,67 @@ export default async function DashboardPage({
                             </div>
                           </details>
                         ) : (
-                          <p className="mt-2 max-w-xs text-xs text-amber-200">
+                          <p className="mt-2 text-xs leading-5 text-amber-200">
                             Full key is unavailable for this older hashed-only record. Reissue a new key if needed.
                           </p>
                         );
                       })()}
                     </td>
-                    <td>{license.plan}</td>
-                    <td>{license.status}</td>
-                    <td>
-                      {license.activations.filter((item) => item.status === "ACTIVE").length}/{license.maxActivations}
+                    <td className="px-4 py-5 align-top">
+                      <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-200">
+                        {license.plan.replace("_", " ")}
+                      </span>
                     </td>
-                    <td>{formatDate(license.expiresAt)}</td>
-                    <td>
-                      <div className="flex flex-wrap gap-2">
-                      <form action={updateLicenseStatusAction} className="flex gap-2">
+                    <td className="px-4 py-5 align-top">
+                      <form action={updateLicenseStatusAction} className="space-y-2">
                         <input type="hidden" name="licenseId" value={license.id} />
-                        <select name="status" defaultValue={license.status} className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2">
+                        <select
+                          key={`${license.id}-${license.status}`}
+                          name="status"
+                          defaultValue={license.status}
+                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm outline-none"
+                        >
                           {["ACTIVE", "SUSPENDED", "EXPIRED", "REVOKED", "REFUNDED"].map((status) => (
                             <option key={status} value={status}>
                               {status}
                             </option>
                           ))}
                         </select>
-                        <button className="rounded-xl border border-white/10 px-3 py-2 hover:bg-white/10">Save</button>
-                      </form>
-                      {license.keyEncrypted ? (
-                        <a
-                          href={`/api/admin/licenses/${license.id}/download`}
-                          className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 hover:bg-white/10"
-                        >
-                          <Download size={14} /> TXT
-                        </a>
-                      ) : null}
-                      <form action={deleteUnusedLicenseAction}>
-                        <input type="hidden" name="licenseId" value={license.id} />
-                        <button
-                          className="inline-flex items-center gap-2 rounded-xl border border-red-400/20 px-3 py-2 text-red-200 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
-                          disabled={license.activations.some((activation) => activation.status === "ACTIVE")}
-                          title={
-                            license.activations.some((activation) => activation.status === "ACTIVE")
-                              ? "Deactivate active installations before deleting this license."
-                              : "Delete unused license"
-                          }
-                        >
-                          <Trash2 size={14} /> Delete
+                        <button className="w-full rounded-xl border border-white/10 px-3 py-2 text-sm hover:bg-white/10">
+                          Save status
                         </button>
                       </form>
+                    </td>
+                    <td className="px-4 py-5 align-top">
+                      <span className="rounded-full border border-white/10 px-3 py-1 text-sm">
+                        {license.activations.filter((item) => item.status === "ACTIVE").length}/{license.maxActivations}
+                      </span>
+                    </td>
+                    <td className="px-4 py-5 align-top text-slate-300">{formatDate(license.expiresAt)}</td>
+                    <td className="px-4 py-5 align-top">
+                      <div className="flex flex-col items-stretch gap-2">
+                        {license.keyEncrypted ? (
+                          <a
+                            href={`/api/admin/licenses/${license.id}/download`}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-3 py-2 hover:bg-white/10"
+                          >
+                            <Download size={14} /> TXT
+                          </a>
+                        ) : null}
+                        <form action={deleteUnusedLicenseAction}>
+                          <input type="hidden" name="licenseId" value={license.id} />
+                          <button
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 px-3 py-2 text-red-200 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+                            disabled={license.activations.some((activation) => activation.status === "ACTIVE")}
+                            title={
+                              license.activations.some((activation) => activation.status === "ACTIVE")
+                                ? "Deactivate active installations before deleting this license."
+                                : "Delete unused license"
+                            }
+                          >
+                            <Trash2 size={14} /> Delete
+                          </button>
+                        </form>
                       </div>
                     </td>
                   </tr>
