@@ -41,6 +41,10 @@ export const deactivateActivationSchema = z.object({
   activationId: z.string().min(1),
 });
 
+export const deleteLicenseSchema = z.object({
+  licenseId: z.string().min(1),
+});
+
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1),

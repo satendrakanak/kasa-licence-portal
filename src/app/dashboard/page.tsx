@@ -11,6 +11,7 @@ import {
   PackagePlus,
   PauseCircle,
   ShieldCheck,
+  Trash2,
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -18,6 +19,7 @@ import {
   createLicenseAction,
   createProductAction,
   deactivateActivationAction,
+  deleteUnusedLicenseAction,
   logoutAction,
   toggleProductStatusAction,
   updateLicenseStatusAction,
@@ -51,7 +53,7 @@ function stat(label: string, value: string | number, helper: string) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ newKey?: string }>;
+  searchParams: Promise<{ newKey?: string; licenseDelete?: string }>;
 }) {
   const admin = await requireAdmin();
   const params = await searchParams;
@@ -146,6 +148,22 @@ export default async function DashboardPage({
               </div>
               <LicenseKeyActions licenseKey={params.newKey} />
             </div>
+          </section>
+        ) : null}
+
+        {params.licenseDelete ? (
+          <section
+            className={`rounded-3xl border p-5 ${
+              params.licenseDelete === "success"
+                ? "border-emerald-300/40 bg-emerald-400/10 text-emerald-100"
+                : "border-amber-300/40 bg-amber-400/10 text-amber-100"
+            }`}
+          >
+            {params.licenseDelete === "success"
+              ? "Unused license deleted successfully."
+              : params.licenseDelete === "active"
+                ? "This license has an active installation. Deactivate the installation before deleting it."
+                : "License could not be found."}
           </section>
         ) : null}
 
@@ -313,6 +331,20 @@ export default async function DashboardPage({
                           <Download size={14} /> TXT
                         </a>
                       ) : null}
+                      <form action={deleteUnusedLicenseAction}>
+                        <input type="hidden" name="licenseId" value={license.id} />
+                        <button
+                          className="inline-flex items-center gap-2 rounded-xl border border-red-400/20 px-3 py-2 text-red-200 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={license.activations.some((activation) => activation.status === "ACTIVE")}
+                          title={
+                            license.activations.some((activation) => activation.status === "ACTIVE")
+                              ? "Deactivate active installations before deleting this license."
+                              : "Delete unused license"
+                          }
+                        >
+                          <Trash2 size={14} /> Delete
+                        </button>
+                      </form>
                       </div>
                     </td>
                   </tr>

@@ -21,6 +21,7 @@ import {
   productSchema,
   setupSchema,
   changePasswordSchema,
+  deleteLicenseSchema,
 } from "@/lib/validators";
 
 function formObject(formData: FormData) {
@@ -170,6 +171,48 @@ export async function updateLicenseStatusAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+}
+
+export async function deleteUnusedLicenseAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = deleteLicenseSchema.parse(formObject(formData));
+  const license = await prisma.license.findUnique({
+    where: { id: parsed.licenseId },
+    include: {
+      activations: {
+        select: { status: true },
+      },
+    },
+  });
+
+  if (!license) {
+    redirect("/dashboard?licenseDelete=missing");
+  }
+
+  const hasActiveInstallations = license.activations.some(
+    (activation) => activation.status === "ACTIVE",
+  );
+  if (hasActiveInstallations) {
+    redirect("/dashboard?licenseDelete=active");
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      licenseId: license.id,
+      action: "license.deleted",
+      actor: "admin",
+      details: {
+        keyPreview: license.keyPreview,
+        buyerEmail: license.buyerEmail,
+      },
+    },
+  });
+
+  await prisma.license.delete({
+    where: { id: license.id },
+  });
+
+  redirect("/dashboard?licenseDelete=success");
 }
 
 export async function toggleProductStatusAction(formData: FormData) {
