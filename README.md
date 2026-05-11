@@ -104,6 +104,7 @@ Content-Type: application/json
 ## Production Notes
 
 - Use PostgreSQL with backups enabled.
+- AWS EC2 no-Docker deployment: [docs/AWS_EC2_NO_DOCKER_DEPLOYMENT.md](./docs/AWS_EC2_NO_DOCKER_DEPLOYMENT.md)
 - Set long random values for `SESSION_SECRET` and `LICENSE_SIGNING_SECRET`.
 - Keep this portal private behind admin login.
 - Do not log full licence keys after creation; store only hashes and masked previews.
