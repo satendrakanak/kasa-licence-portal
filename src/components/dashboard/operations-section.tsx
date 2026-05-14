@@ -32,20 +32,22 @@ export function OperationsSection({ products }: { products: DashboardData["produ
           description="Create a buyer license with plan, sales source, expiry, and activation limit."
         />
         <form action={createLicenseAction} className="mt-5 grid gap-3 md:grid-cols-2">
-          <select name="productId" required className={`${inputClass} md:col-span-2`}>
-            <option value="">Select product</option>
+          <select name="productPriceId" required className={`${inputClass} md:col-span-2`}>
+            <option value="">Select product pricing</option>
             {products.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.name}
-              </option>
+              product.prices
+                .filter((price) => price.isActive)
+                .map((price) => (
+                  <option key={price.id} value={price.id}>
+                    {product.name} · {price.edition} · {price.plan.replace("_", " ")} · {price.currency} {Number(price.amount).toLocaleString("en-IN")} · {price.maxActivations} install{price.maxActivations === 1 ? "" : "s"}
+                  </option>
+                ))
             ))}
           </select>
           <input name="buyerName" placeholder="Buyer name" className={inputClass} />
           <input name="buyerEmail" type="email" required placeholder="buyer@email.com" className={inputClass} />
           <input name="platform" defaultValue="manual" placeholder="envato / direct / manual" className={inputClass} />
           <input name="purchaseRef" placeholder="Purchase reference" className={inputClass} />
-          <input name="saleAmount" type="number" min={0} step="0.01" placeholder="Sale amount" className={inputClass} />
-          <input name="saleCurrency" defaultValue="INR" maxLength={3} placeholder="INR" className={`${inputClass} uppercase`} />
           <select name="saleChannel" defaultValue="direct-website" className={inputClass}>
             <option value="direct-website">Direct website</option>
             <option value="envato">Envato</option>
@@ -54,19 +56,7 @@ export function OperationsSection({ products }: { products: DashboardData["produ
           </select>
           <input name="marketingSource" placeholder="fb / instagram / google / referral" className={inputClass} />
           <input name="soldAt" type="date" className={inputClass} />
-          <select name="edition" defaultValue="ENTERPRISE" className={inputClass}>
-            <option value="STARTER">KASA Starter</option>
-            <option value="PLUS">KASA Plus</option>
-            <option value="ENTERPRISE">KASA Enterprise</option>
-          </select>
-          <select name="plan" defaultValue="LIFETIME" className={inputClass}>
-            <option value="LIFETIME">Lifetime</option>
-            <option value="SIX_MONTHS">6 months</option>
-            <option value="TWELVE_MONTHS">12 months</option>
-            <option value="CUSTOM">Custom expiry</option>
-          </select>
           <input name="expiresAt" type="date" className={inputClass} />
-          <input name="maxActivations" type="number" min={1} max={50} defaultValue={1} className={inputClass} />
           <input name="renewalUrl" type="url" placeholder="Renewal URL" className={`${inputClass} md:col-span-2`} />
           <textarea name="notes" placeholder="Internal notes" className={`${inputClass} min-h-24 md:col-span-2`} />
           <button className="rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-emerald-300 md:col-span-2">

@@ -64,13 +64,35 @@ model Product {
   status      ProductStatus @default(ACTIVE)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  prices      ProductPrice[]
   licenses    License[]
+}
+
+model ProductPrice {
+  id             String      @id @default(cuid())
+  productId      String
+  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  edition        KasaEdition
+  plan           PlanType
+  currency       String      @default("INR")
+  amount         Decimal     @db.Decimal(12, 2)
+  maxActivations Int         @default(1)
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  licenses       License[]
+
+  @@unique([productId, edition, plan, currency])
+  @@index([productId, isActive])
+  @@index([edition, plan, currency])
 }
 
 model License {
   id             String              @id @default(cuid())
   productId      String
   product        Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productPriceId String?
+  productPrice   ProductPrice?       @relation(fields: [productPriceId], references: [id], onDelete: SetNull)
   keyHash        String              @unique
   keyPreview     String
   keyEncrypted   String?
@@ -98,6 +120,7 @@ model License {
   audits         AuditLog[]
 
   @@index([buyerEmail])
+  @@index([productPriceId])
   @@index([productId, status])
   @@index([edition, status])
   @@index([expiresAt, status])

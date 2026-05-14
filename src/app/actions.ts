@@ -21,9 +21,12 @@ import {
 import { prisma } from "@/lib/prisma";
 import {
   deactivateActivationSchema,
+  deleteProductPriceSchema,
   licenseSchema,
   licenseStatusSchema,
   loginSchema,
+  productPriceSchema,
+  productPriceStatusSchema,
   productSchema,
   setupSchema,
   changePasswordSchema,
@@ -172,19 +175,99 @@ export async function deleteProductAction(formData: FormData) {
   return { ok: true, message: "Product deleted." };
 }
 
+export async function createProductPriceAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = productPriceSchema.parse(formObject(formData));
+
+  const product = await prisma.product.findUnique({
+    where: { id: parsed.productId },
+    select: { id: true },
+  });
+  if (!product) {
+    return { ok: false, message: "Product could not be found." };
+  }
+
+  await prisma.productPrice.upsert({
+    where: {
+      productId_edition_plan_currency: {
+        productId: parsed.productId,
+        edition: parsed.edition as KasaEdition,
+        plan: parsed.plan as PlanType,
+        currency: parsed.currency.toUpperCase(),
+      },
+    },
+    update: {
+      amount: parsed.amount,
+      maxActivations: parsed.maxActivations,
+      isActive: true,
+    },
+    create: {
+      productId: parsed.productId,
+      edition: parsed.edition as KasaEdition,
+      plan: parsed.plan as PlanType,
+      currency: parsed.currency.toUpperCase(),
+      amount: parsed.amount,
+      maxActivations: parsed.maxActivations,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  return { ok: true, message: "Pricing saved." };
+}
+
+export async function deleteProductPriceAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = deleteProductPriceSchema.parse(formObject(formData));
+
+  const usedLicenses = await prisma.license.count({
+    where: { productPriceId: parsed.productPriceId },
+  });
+  if (usedLicenses > 0) {
+    return {
+      ok: false,
+      message: "Pricing used by licenses cannot be deleted. Disable it instead.",
+    };
+  }
+
+  await prisma.productPrice.delete({
+    where: { id: parsed.productPriceId },
+  });
+
+  revalidatePath("/dashboard");
+  return { ok: true, message: "Pricing deleted." };
+}
+
+export async function toggleProductPriceStatusAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = productPriceStatusSchema.parse(formObject(formData));
+
+  await prisma.productPrice.update({
+    where: { id: parsed.productPriceId },
+    data: { isActive: parsed.isActive === "true" },
+  });
+
+  revalidatePath("/dashboard");
+  return { ok: true, message: "Pricing status updated." };
+}
+
 export async function createLicenseAction(formData: FormData) {
   await requireAdmin();
   const parsed = licenseSchema.parse(formObject(formData));
-  await prisma.product.findUniqueOrThrow({
-    where: { id: parsed.productId },
+  const price = await prisma.productPrice.findUniqueOrThrow({
+    where: { id: parsed.productPriceId },
+    include: { product: true },
   });
-  const edition = parsed.edition as KasaEdition;
+  if (!price.isActive || price.product.status !== "ACTIVE") {
+    redirect("/dashboard?error=inactive-price");
+  }
+
+  const edition = price.edition;
   const key = createLicenseKey(`KASA-${edition}`);
-  const plan = parsed.plan as PlanType;
 
   await prisma.license.create({
     data: {
-      productId: parsed.productId,
+      productId: price.productId,
+      productPriceId: price.id,
       keyHash: sha256(key),
       keyPreview: previewLicenseKey(key),
       keyEncrypted: encryptLicenseKey(key),
@@ -192,16 +275,16 @@ export async function createLicenseAction(formData: FormData) {
       buyerEmail: parsed.buyerEmail.toLowerCase(),
       platform: parsed.platform,
       purchaseRef: parsed.purchaseRef || null,
-      saleAmount: parsed.saleAmount,
-      saleCurrency: parsed.saleCurrency.toUpperCase(),
+      saleAmount: price.amount,
+      saleCurrency: price.currency,
       saleChannel: parsed.saleChannel,
       marketingSource: parsed.marketingSource || null,
       soldAt: parsed.soldAt ? new Date(parsed.soldAt) : new Date(),
       edition,
-      plan,
-      expiresAt: getPlanExpiry(plan, parsed.expiresAt),
+      plan: price.plan,
+      expiresAt: getPlanExpiry(price.plan, parsed.expiresAt),
       renewalUrl: parsed.renewalUrl || null,
-      maxActivations: parsed.maxActivations,
+      maxActivations: price.maxActivations,
       notes: parsed.notes || null,
     },
   });

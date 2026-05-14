@@ -1,5 +1,6 @@
 import { Boxes } from "lucide-react";
 import { ProductCardControls } from "@/components/product-card-controls";
+import { ProductPricingControls } from "@/components/product-pricing-controls";
 import type { DashboardData } from "@/lib/dashboard-data";
 import { SectionCard, SectionTitle } from "@/components/dashboard/section-card";
 
@@ -32,6 +33,20 @@ export function ProductsSection({ products }: { products: DashboardData["product
                   status: product.status,
                   licenseCount: product._count.licenses,
                 }}
+              />
+            </div>
+            <div className="mt-5">
+              <ProductPricingControls
+                productId={product.id}
+                prices={product.prices.map((price) => ({
+                  id: price.id,
+                  edition: price.edition,
+                  plan: price.plan,
+                  currency: price.currency,
+                  amount: Number(price.amount),
+                  maxActivations: price.maxActivations,
+                  isActive: price.isActive,
+                }))}
               />
             </div>
           </article>

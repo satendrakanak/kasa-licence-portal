@@ -47,6 +47,13 @@ export async function getDashboardData() {
   ] = await Promise.all([
     prisma.product.findMany({
       include: {
+        prices: {
+          orderBy: [
+            { edition: "asc" },
+            { plan: "asc" },
+            { currency: "asc" },
+          ],
+        },
         _count: {
           select: {
             licenses: true,

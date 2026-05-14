@@ -28,20 +28,33 @@ export const deleteProductSchema = z.object({
   productId: z.string().min(1),
 });
 
-export const licenseSchema = z.object({
+export const productPriceSchema = z.object({
   productId: z.string().min(1),
+  edition: z.enum(["STARTER", "PLUS", "ENTERPRISE"]),
+  plan: z.enum(["LIFETIME", "SIX_MONTHS", "TWELVE_MONTHS", "CUSTOM"]),
+  currency: z.string().min(3).max(3).default("INR"),
+  amount: z.coerce.number().min(0),
+  maxActivations: z.coerce.number().int().min(1).max(50),
+});
+
+export const deleteProductPriceSchema = z.object({
+  productPriceId: z.string().min(1),
+});
+
+export const productPriceStatusSchema = z.object({
+  productPriceId: z.string().min(1),
+  isActive: z.enum(["true", "false"]),
+});
+
+export const licenseSchema = z.object({
+  productPriceId: z.string().min(1),
   buyerName: z.string().optional(),
   buyerEmail: z.string().email(),
   platform: z.string().min(2).default("manual"),
   purchaseRef: z.string().optional(),
-  saleAmount: z.coerce.number().min(0).default(0),
-  saleCurrency: z.string().min(3).max(3).default("INR"),
   saleChannel: z.string().min(2).max(80).default("direct"),
   marketingSource: z.string().max(120).optional(),
   soldAt: z.string().optional(),
-  edition: z.enum(["STARTER", "PLUS", "ENTERPRISE"]),
-  plan: z.enum(["LIFETIME", "SIX_MONTHS", "TWELVE_MONTHS", "CUSTOM"]),
-  maxActivations: z.coerce.number().int().min(1).max(50),
   expiresAt: z.string().optional(),
   renewalUrl: z.string().url().optional().or(z.literal("")),
   notes: z.string().optional(),
