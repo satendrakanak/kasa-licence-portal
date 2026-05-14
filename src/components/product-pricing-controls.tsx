@@ -19,6 +19,7 @@ type ProductPricingControlsProps = {
     currency: string;
     amount: number;
     maxActivations: number;
+    envatoItemId: string | null;
     isActive: boolean;
   }>;
 };
@@ -92,6 +93,7 @@ export function ProductPricingControls({ productId, prices }: ProductPricingCont
                   <p className="text-sm font-medium text-white">{priceLabel(price)}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     {price.isActive ? "Active for new licenses" : "Disabled"}
+                    {price.envatoItemId ? ` · Envato item ${price.envatoItemId}` : ""}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -139,6 +141,11 @@ export function ProductPricingControls({ productId, prices }: ProductPricingCont
         </select>
         <input name="amount" type="number" min={0} step="0.01" placeholder="Price" className={inputClass} />
         <input name="maxActivations" type="number" min={1} max={50} defaultValue={1} className={inputClass} />
+        <input
+          name="envatoItemId"
+          placeholder="Envato item ID"
+          className={`${inputClass} md:col-span-5`}
+        />
         <button
           disabled={isSaving}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-400/20 px-3 py-2 text-sm text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-50 md:col-span-5"

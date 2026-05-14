@@ -13,6 +13,10 @@ type ActivationInput = {
   metadata?: Record<string, unknown>;
 };
 
+type LicenseWithActivationContext = NonNullable<
+  Awaited<ReturnType<typeof findLicenseByKey>>
+>;
+
 function getLicenseSigningSecret() {
   const secret = process.env.LICENSE_SIGNING_SECRET;
   if (!secret || secret.length < 24) {
@@ -24,6 +28,33 @@ function getLicenseSigningSecret() {
 
 function isLicenseDateValid(expiresAt: Date | null) {
   return !expiresAt || expiresAt.getTime() > Date.now();
+}
+
+async function findLicenseByKey(input: Pick<ActivationInput, "licenseKey" | "productSlug">) {
+  return prisma.license.findFirst({
+    where: {
+      keyHash: sha256(input.licenseKey),
+      product: { slug: input.productSlug },
+    },
+    include: {
+      product: true,
+      activations: {
+        where: { status: "ACTIVE" },
+      },
+    },
+  });
+}
+
+async function findLicenseById(licenseId: string) {
+  return prisma.license.findUnique({
+    where: { id: licenseId },
+    include: {
+      product: true,
+      activations: {
+        where: { status: "ACTIVE" },
+      },
+    },
+  });
 }
 
 export async function createSignedLicenseToken(payload: {
@@ -50,20 +81,10 @@ export async function createSignedLicenseToken(payload: {
     .sign(getLicenseSigningSecret());
 }
 
-export async function activateLicense(input: ActivationInput) {
-  const license = await prisma.license.findFirst({
-    where: {
-      keyHash: sha256(input.licenseKey),
-      product: { slug: input.productSlug },
-    },
-    include: {
-      product: true,
-      activations: {
-        where: { status: "ACTIVE" },
-      },
-    },
-  });
-
+async function activateLicenseRecord(
+  license: LicenseWithActivationContext | null,
+  input: Omit<ActivationInput, "licenseKey" | "productSlug">,
+) {
   if (!license) {
     return { ok: false as const, code: "LICENSE_NOT_FOUND", message: "License key is invalid." };
   }
@@ -123,7 +144,7 @@ export async function activateLicense(input: ActivationInput) {
       action: existingActivation ? "license.checked" : "license.activated",
       actor: input.instanceLabel || input.instanceId,
       details: {
-        productSlug: input.productSlug,
+        productSlug: license.product.slug,
         activationId: activation.id,
       },
     },
@@ -157,4 +178,15 @@ export async function activateLicense(input: ActivationInput) {
     },
     signature: token,
   };
+}
+
+export async function activateLicense(input: ActivationInput) {
+  return activateLicenseRecord(await findLicenseByKey(input), input);
+}
+
+export async function activateLicenseById(
+  licenseId: string,
+  input: Omit<ActivationInput, "licenseKey" | "productSlug">,
+) {
+  return activateLicenseRecord(await findLicenseById(licenseId), input);
 }

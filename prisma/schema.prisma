@@ -46,6 +46,10 @@ enum LeadStatus {
   CLOSED
 }
 
+enum Marketplace {
+  ENVATO
+}
+
 model AdminUser {
   id           String   @id @default(cuid())
   name         String
@@ -77,6 +81,7 @@ model ProductPrice {
   currency       String      @default("INR")
   amount         Decimal     @db.Decimal(12, 2)
   maxActivations Int         @default(1)
+  envatoItemId   String?     @unique
   isActive       Boolean     @default(true)
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -84,6 +89,7 @@ model ProductPrice {
 
   @@unique([productId, edition, plan, currency])
   @@index([productId, isActive])
+  @@index([envatoItemId])
   @@index([edition, plan, currency])
 }
 
@@ -118,6 +124,7 @@ model License {
   updatedAt      DateTime            @updatedAt
   activations    LicenseActivation[]
   audits         AuditLog[]
+  marketplacePurchases MarketplacePurchase[]
 
   @@index([buyerEmail])
   @@index([productPriceId])
@@ -127,6 +134,27 @@ model License {
   @@index([saleChannel, soldAt])
   @@index([marketingSource, soldAt])
   @@index([soldAt])
+}
+
+model MarketplacePurchase {
+  id                 String      @id @default(cuid())
+  marketplace        Marketplace
+  purchaseCodeHash   String      @unique
+  purchaseCodePreview String
+  externalItemId     String
+  externalItemName   String?
+  buyerUsername      String?
+  buyerEmail         String?
+  soldAt             DateTime?
+  supportedUntil     DateTime?
+  licenseId          String
+  license            License     @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  rawSummary         Json?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([marketplace, externalItemId])
+  @@index([licenseId])
 }
 
 model LicenseActivation {

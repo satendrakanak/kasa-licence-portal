@@ -13,6 +13,16 @@ export function ClientApiCard() {
   "instanceId": "server-or-installation-uuid",
   "instanceLabel": "Client production server",
   "productVersion": "1.0.0"
+}
+
+POST /api/v1/envato/activate
+{
+  "purchaseCode": "ENVATO-PURCHASE-CODE",
+  "buyerName": "Buyer name",
+  "buyerEmail": "buyer@email.com",
+  "instanceId": "server-or-installation-uuid",
+  "instanceLabel": "Client production server",
+  "productVersion": "1.0.0"
 }`}
       </pre>
     </SectionCard>

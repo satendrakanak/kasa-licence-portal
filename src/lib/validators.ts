@@ -35,6 +35,7 @@ export const productPriceSchema = z.object({
   currency: z.string().min(3).max(3).default("INR"),
   amount: z.coerce.number().min(0),
   maxActivations: z.coerce.number().int().min(1).max(50),
+  envatoItemId: z.string().max(80).optional(),
 });
 
 export const deleteProductPriceSchema = z.object({
@@ -106,6 +107,16 @@ export const changePasswordSchema = z
 export const activationSchema = z.object({
   licenseKey: z.string().min(8),
   productSlug: z.string().min(2),
+  instanceId: z.string().min(12),
+  instanceLabel: z.string().optional(),
+  productVersion: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const envatoActivationSchema = z.object({
+  purchaseCode: z.string().min(8).max(120),
+  buyerName: z.string().min(2).max(160).optional(),
+  buyerEmail: z.string().email(),
   instanceId: z.string().min(12),
   instanceLabel: z.string().optional(),
   productVersion: z.string().optional(),

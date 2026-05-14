@@ -199,6 +199,7 @@ export async function createProductPriceAction(formData: FormData) {
     update: {
       amount: parsed.amount,
       maxActivations: parsed.maxActivations,
+      envatoItemId: parsed.envatoItemId?.trim() || null,
       isActive: true,
     },
     create: {
@@ -208,6 +209,7 @@ export async function createProductPriceAction(formData: FormData) {
       currency: parsed.currency.toUpperCase(),
       amount: parsed.amount,
       maxActivations: parsed.maxActivations,
+      envatoItemId: parsed.envatoItemId?.trim() || null,
     },
   });
 

@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   await prisma.auditLog.deleteMany();
   await prisma.licenseActivation.deleteMany();
+  await prisma.marketplacePurchase.deleteMany();
   await prisma.license.deleteMany();
   await prisma.productPrice.deleteMany();
   await prisma.lead.deleteMany();
