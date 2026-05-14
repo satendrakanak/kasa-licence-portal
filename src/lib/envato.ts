@@ -186,6 +186,9 @@ export async function activateEnvatoPurchase(input: EnvatoActivationInput) {
         plan: price.plan,
         expiresAt: getPlanExpiry(price.plan, verified.sale.supportedUntil),
         maxActivations: price.maxActivations,
+        userLimit: price.userLimit,
+        courseLimit: price.courseLimit,
+        facultyLimit: price.facultyLimit,
         notes: "Generated from verified Envato purchase code.",
       },
     });

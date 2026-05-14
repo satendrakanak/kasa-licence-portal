@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+const optionalLimit = z.preprocess(
+  (value) => (value === "" || value === null ? undefined : value),
+  z.coerce.number().int().min(0).optional(),
+);
+
 export const setupSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
@@ -35,6 +40,9 @@ export const productPriceSchema = z.object({
   currency: z.string().min(3).max(3).default("INR"),
   amount: z.coerce.number().min(0),
   maxActivations: z.coerce.number().int().min(1).max(50),
+  userLimit: optionalLimit,
+  courseLimit: optionalLimit,
+  facultyLimit: optionalLimit,
   envatoItemId: z.string().max(80).optional(),
 });
 

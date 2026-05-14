@@ -19,6 +19,9 @@ type ProductPricingControlsProps = {
     currency: string;
     amount: number;
     maxActivations: number;
+    userLimit: number | null;
+    courseLimit: number | null;
+    facultyLimit: number | null;
     envatoItemId: string | null;
     isActive: boolean;
   }>;
@@ -28,7 +31,7 @@ const inputClass =
   "rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white outline-none";
 
 function priceLabel(price: ProductPricingControlsProps["prices"][number]) {
-  return `${price.edition} · ${price.plan.replace("_", " ")} · ${price.currency} ${price.amount.toLocaleString("en-IN")} · ${price.maxActivations} install${price.maxActivations === 1 ? "" : "s"}`;
+  return `${price.edition} · ${price.plan.replace("_", " ")} · ${price.currency} ${price.amount.toLocaleString("en-IN")} · ${price.maxActivations} install${price.maxActivations === 1 ? "" : "s"} · ${price.userLimit ?? "∞"} users · ${price.courseLimit ?? "∞"} courses · ${price.facultyLimit ?? "∞"} faculty`;
 }
 
 export function ProductPricingControls({ productId, prices }: ProductPricingControlsProps) {
@@ -141,10 +144,13 @@ export function ProductPricingControls({ productId, prices }: ProductPricingCont
         </select>
         <input name="amount" type="number" min={0} step="0.01" placeholder="Price" className={inputClass} />
         <input name="maxActivations" type="number" min={1} max={50} defaultValue={1} className={inputClass} />
+        <input name="userLimit" type="number" min={0} placeholder="Users limit" className={inputClass} />
+        <input name="courseLimit" type="number" min={0} placeholder="Courses limit" className={inputClass} />
+        <input name="facultyLimit" type="number" min={0} placeholder="Faculty limit" className={inputClass} />
         <input
           name="envatoItemId"
           placeholder="Envato item ID"
-          className={`${inputClass} md:col-span-5`}
+          className={`${inputClass} md:col-span-2`}
         />
         <button
           disabled={isSaving}

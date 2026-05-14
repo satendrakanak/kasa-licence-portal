@@ -30,6 +30,18 @@ function isLicenseDateValid(expiresAt: Date | null) {
   return !expiresAt || expiresAt.getTime() > Date.now();
 }
 
+function getLicenseLimits(license: {
+  userLimit: number | null;
+  courseLimit: number | null;
+  facultyLimit: number | null;
+}) {
+  return {
+    ...(license.userLimit !== null ? { users: license.userLimit } : {}),
+    ...(license.courseLimit !== null ? { courses: license.courseLimit } : {}),
+    ...(license.facultyLimit !== null ? { faculty: license.facultyLimit } : {}),
+  };
+}
+
 async function findLicenseByKey(input: Pick<ActivationInput, "licenseKey" | "productSlug">) {
   const keyHash = sha256(input.licenseKey);
   const exactMatch = await prisma.license.findFirst({
@@ -186,6 +198,9 @@ async function activateLicenseRecord(
       activeActivations: existingActivation
         ? license.activations.length
         : license.activations.length + 1,
+      limits: {
+        ...getLicenseLimits(license),
+      },
     },
     activation: {
       id: activation.id,

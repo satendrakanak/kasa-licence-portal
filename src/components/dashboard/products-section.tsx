@@ -45,6 +45,9 @@ export function ProductsSection({ products }: { products: DashboardData["product
                   currency: price.currency,
                   amount: Number(price.amount),
                   maxActivations: price.maxActivations,
+                  userLimit: price.userLimit,
+                  courseLimit: price.courseLimit,
+                  facultyLimit: price.facultyLimit,
                   envatoItemId: price.envatoItemId,
                   isActive: price.isActive,
                 }))}

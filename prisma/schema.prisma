@@ -81,6 +81,9 @@ model ProductPrice {
   currency       String      @default("INR")
   amount         Decimal     @db.Decimal(12, 2)
   maxActivations Int         @default(1)
+  userLimit      Int?
+  courseLimit    Int?
+  facultyLimit   Int?
   envatoItemId   String?     @unique
   isActive       Boolean     @default(true)
   createdAt      DateTime    @default(now())
@@ -118,6 +121,9 @@ model License {
   expiryNoticeLastSentAt DateTime?
   expiryNoticeCount      Int         @default(0)
   maxActivations Int                 @default(1)
+  userLimit      Int?
+  courseLimit    Int?
+  facultyLimit   Int?
   status         LicenseStatus       @default(ACTIVE)
   notes          String?
   createdAt      DateTime            @default(now())

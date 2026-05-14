@@ -50,6 +50,10 @@ function getPlanExpiry(plan: PlanType, customDate?: string) {
   return date;
 }
 
+function optionalLimit(value: number | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 export async function setupAdminAction(formData: FormData) {
   if (await hasAdminUser()) redirect("/login");
 
@@ -199,6 +203,9 @@ export async function createProductPriceAction(formData: FormData) {
     update: {
       amount: parsed.amount,
       maxActivations: parsed.maxActivations,
+      userLimit: optionalLimit(parsed.userLimit),
+      courseLimit: optionalLimit(parsed.courseLimit),
+      facultyLimit: optionalLimit(parsed.facultyLimit),
       envatoItemId: parsed.envatoItemId?.trim() || null,
       isActive: true,
     },
@@ -209,6 +216,9 @@ export async function createProductPriceAction(formData: FormData) {
       currency: parsed.currency.toUpperCase(),
       amount: parsed.amount,
       maxActivations: parsed.maxActivations,
+      userLimit: optionalLimit(parsed.userLimit),
+      courseLimit: optionalLimit(parsed.courseLimit),
+      facultyLimit: optionalLimit(parsed.facultyLimit),
       envatoItemId: parsed.envatoItemId?.trim() || null,
     },
   });
@@ -287,6 +297,9 @@ export async function createLicenseAction(formData: FormData) {
       expiresAt: getPlanExpiry(price.plan, parsed.expiresAt),
       renewalUrl: parsed.renewalUrl || null,
       maxActivations: price.maxActivations,
+      userLimit: price.userLimit,
+      courseLimit: price.courseLimit,
+      facultyLimit: price.facultyLimit,
       notes: parsed.notes || null,
     },
   });
