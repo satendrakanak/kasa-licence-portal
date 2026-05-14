@@ -6,7 +6,7 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 import { updateKasaModulePlanAction } from "@/app/actions";
 import type { KasaModuleEntitlement } from "@/lib/kasa-modules";
-import { KASA_MODULES } from "@/lib/kasa-modules";
+import { COURSE_DELIVERY_MODES, KASA_MODULES } from "@/lib/kasa-modules";
 
 type ModuleManagementControlsProps = {
   entitlements: KasaModuleEntitlement[];
@@ -93,6 +93,38 @@ function PlanModuleCard({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+        <p className="text-sm font-semibold text-slate-200">
+          Allowed course types
+        </p>
+        <div className="mt-3 space-y-2">
+          {COURSE_DELIVERY_MODES.map((mode) => (
+            <label
+              key={mode.key}
+              className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-slate-900/70 p-3"
+            >
+              <input
+                type="checkbox"
+                name="allowedCourseModes"
+                value={mode.key}
+                defaultChecked={entitlement.rules.allowedCourseModes.includes(
+                  mode.key,
+                )}
+                className="mt-1 h-5 w-5 accent-emerald-400"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-white">
+                  {mode.label}
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-slate-400">
+                  {mode.description}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="mt-5 space-y-3">

@@ -89,6 +89,9 @@ export const revokeLicenseAccessSchema = z.object({
 export const moduleManagementSchema = z.object({
   edition: z.enum(["STARTER", "PLUS", "ENTERPRISE"]),
   certificateRule: z.enum(["lecture_completion", "exam_pass"]),
+  allowedCourseModes: z
+    .array(z.enum(["self_learning", "faculty_led", "hybrid"]))
+    .min(1),
   features: z.array(z.string()).optional(),
 });
 

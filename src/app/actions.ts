@@ -392,6 +392,7 @@ export async function updateKasaModulePlanAction(formData: FormData) {
   const parsed = moduleManagementSchema.parse({
     ...formObject(formData),
     features: formArray(formData, "features"),
+    allowedCourseModes: formArray(formData, "allowedCourseModes"),
   });
   const selectedFeatures = new Set(parsed.features || []);
   const current = await getKasaModuleEntitlements();
@@ -405,6 +406,7 @@ export async function updateKasaModulePlanAction(formData: FormData) {
       ) as typeof entitlement.features,
       rules: {
         certificateRule: parsed.certificateRule,
+        allowedCourseModes: parsed.allowedCourseModes,
       },
     };
   });

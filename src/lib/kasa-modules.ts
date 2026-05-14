@@ -77,9 +77,11 @@ export const KASA_MODULES = [
 
 export type KasaModuleKey = (typeof KASA_MODULES)[number]["key"];
 export type CertificateRule = "lecture_completion" | "exam_pass";
+export type CourseDeliveryMode = "self_learning" | "faculty_led" | "hybrid";
 export type KasaModuleFeatures = Record<KasaModuleKey, boolean>;
 export type KasaModuleRules = {
   certificateRule: CertificateRule;
+  allowedCourseModes: CourseDeliveryMode[];
 };
 export type KasaModuleEntitlement = {
   edition: KasaEdition;
@@ -88,10 +90,32 @@ export type KasaModuleEntitlement = {
 };
 
 const moduleKeys = KASA_MODULES.map((module) => module.key);
+export const COURSE_DELIVERY_MODES = [
+  {
+    key: "self_learning",
+    label: "Self learning",
+    description: "Recorded courses, lessons, and self-paced learning.",
+  },
+  {
+    key: "faculty_led",
+    label: "Faculty led",
+    description: "Faculty workspace, batches, and scheduled classes.",
+  },
+  {
+    key: "hybrid",
+    label: "Hybrid / live",
+    description: "Recorded learning plus live class delivery.",
+  },
+] as const satisfies readonly {
+  key: CourseDeliveryMode;
+  label: string;
+  description: string;
+}[];
+const courseDeliveryModeKeys = COURSE_DELIVERY_MODES.map((mode) => mode.key);
 
 const baseFeatures: KasaModuleFeatures = {
   courses: true,
-  faculty: true,
+  faculty: false,
   liveClasses: false,
   exams: false,
   assignments: false,
@@ -119,12 +143,14 @@ export const DEFAULT_KASA_MODULE_ENTITLEMENTS: Record<
     },
     rules: {
       certificateRule: "lecture_completion",
+      allowedCourseModes: ["self_learning"],
     },
   },
   PLUS: {
     edition: "PLUS",
     features: {
       ...baseFeatures,
+      faculty: true,
       liveClasses: true,
       exams: true,
       assignments: true,
@@ -137,6 +163,7 @@ export const DEFAULT_KASA_MODULE_ENTITLEMENTS: Record<
     },
     rules: {
       certificateRule: "exam_pass",
+      allowedCourseModes: ["self_learning", "faculty_led"],
     },
   },
   ENTERPRISE: {
@@ -146,6 +173,7 @@ export const DEFAULT_KASA_MODULE_ENTITLEMENTS: Record<
     ) as KasaModuleFeatures,
     rules: {
       certificateRule: "exam_pass",
+      allowedCourseModes: ["self_learning", "faculty_led", "hybrid"],
     },
   },
 };
@@ -176,8 +204,19 @@ export function normalizeRules(rules: unknown, edition: KasaEdition) {
     source.certificateRule === "exam_pass"
       ? source.certificateRule
       : fallback.certificateRule;
+  const rawAllowedCourseModes = source.allowedCourseModes;
+  const allowedCourseModes = Array.isArray(rawAllowedCourseModes)
+    ? courseDeliveryModeKeys.filter((mode) =>
+        rawAllowedCourseModes.includes(mode),
+      )
+    : fallback.allowedCourseModes;
 
-  return { certificateRule };
+  return {
+    certificateRule,
+    allowedCourseModes: allowedCourseModes.length
+      ? allowedCourseModes
+      : fallback.allowedCourseModes,
+  };
 }
 
 export async function getKasaModuleEntitlements() {
@@ -238,6 +277,12 @@ export function enforcePlanHierarchy(entitlements: KasaModuleEntitlement[]) {
     plus.features[key] = plus.features[key] || starter.features[key];
     enterprise.features[key] = enterprise.features[key] || plus.features[key];
   }
+  plus.rules.allowedCourseModes = Array.from(
+    new Set([...starter.rules.allowedCourseModes, ...plus.rules.allowedCourseModes]),
+  );
+  enterprise.rules.allowedCourseModes = Array.from(
+    new Set([...plus.rules.allowedCourseModes, ...enterprise.rules.allowedCourseModes]),
+  );
 
   return [starter, plus, enterprise];
 }
