@@ -1,5 +1,4 @@
-import { ArrowLeft, Mail, MessageSquare, Phone, UserRound } from "lucide-react";
-import Link from "next/link";
+import { Mail, MessageSquare, Phone, UserRound } from "lucide-react";
 import { assignLeadAction, updateLeadStatusAction } from "@/app/actions";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -37,42 +36,36 @@ export default async function LeadsDashboardPage() {
   const [allLeads, newLeads, qualifiedLeads, wonLeads] = totals;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#064e3b_0%,#020617_34%,#020617_100%)]">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/85 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.35em] text-emerald-300">
-              Kasa Licence Portal
-            </p>
-            <h1 className="mt-1 text-xl font-semibold">Lead workspace</h1>
+    <div className="space-y-8">
+      <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6">
+        <p className="text-xs font-bold uppercase tracking-[0.28em] text-emerald-300">
+          Lead workspace
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold text-white">
+          Buyer enquiries and demo requests
+        </h1>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+          Review incoming leads, assign owners, and keep sales status updated
+          from the shared licensing workspace.
+        </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-4">
+        {[
+          ["All leads", allLeads, "Every marketing query captured"],
+          ["New", newLeads, "Needs first response or assignment"],
+          ["Qualified", qualifiedLeads, "Ready for a serious demo conversation"],
+          ["Won", wonLeads, "Converted or ready to close"],
+        ].map(([label, value, helper]) => (
+          <div key={String(label)} className="rounded-3xl border border-white/10 bg-slate-900/80 p-5">
+            <p className="text-sm text-slate-400">{label}</p>
+            <p className="mt-4 text-4xl font-semibold">{value}</p>
+            <p className="mt-4 text-sm text-slate-500">{helper}</p>
           </div>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/10"
-          >
-            <ArrowLeft size={16} />
-            Back to dashboard
-          </Link>
-        </div>
-      </header>
+        ))}
+      </section>
 
-      <div className="mx-auto max-w-7xl space-y-8 px-6 py-8">
-        <section className="grid gap-4 md:grid-cols-4">
-          {[
-            ["All leads", allLeads, "Every marketing query captured"],
-            ["New", newLeads, "Needs first response or assignment"],
-            ["Qualified", qualifiedLeads, "Ready for a serious demo conversation"],
-            ["Won", wonLeads, "Converted or ready to close"],
-          ].map(([label, value, helper]) => (
-            <div key={String(label)} className="rounded-3xl border border-white/10 bg-slate-900/80 p-5">
-              <p className="text-sm text-slate-400">{label}</p>
-              <p className="mt-4 text-4xl font-semibold">{value}</p>
-              <p className="mt-4 text-sm text-slate-500">{helper}</p>
-            </div>
-          ))}
-        </section>
-
-        <section className="space-y-4">
+      <section className="space-y-4">
           {leads.map((lead) => (
             <article
               key={lead.id}
@@ -173,8 +166,7 @@ export default async function LeadsDashboardPage() {
               </div>
             </article>
           ))}
-        </section>
-      </div>
-    </main>
+      </section>
+    </div>
   );
 }

@@ -1,5 +1,8 @@
+"use client";
+
 import { LogOut } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { logoutAction } from "@/app/actions";
 
 type DashboardHeaderProps = {
@@ -7,36 +10,53 @@ type DashboardHeaderProps = {
 };
 
 export function DashboardHeader({ adminName }: DashboardHeaderProps) {
+  const pathname = usePathname();
+  const linkClass = (href: string) => {
+    const active = href === "/dashboard" ? pathname === href : pathname?.startsWith(href);
+    return [
+      "rounded-xl border px-3 py-2 text-sm transition",
+      active
+        ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-100"
+        : "border-white/10 text-slate-200 hover:bg-white/10",
+    ].join(" ");
+  };
+
   return (
     <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/95 backdrop-blur">
       <div className="mx-auto flex max-w-[1500px] flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-        <div>
+        <Link href="/dashboard" className="w-fit">
           <p className="text-xs font-bold uppercase tracking-[0.28em] text-emerald-300">
             Kasa Licence Portal
           </p>
           <h1 className="mt-1 text-2xl font-semibold text-white">
             Product licensing workspace
           </h1>
-        </div>
+        </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300">
+          <div className="rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-300">
             {adminName}
           </div>
           <Link
+            href="/dashboard"
+            className={linkClass("/dashboard")}
+          >
+            Dashboard
+          </Link>
+          <Link
             href="/dashboard/leads"
-            className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
+            className={linkClass("/dashboard/leads")}
           >
             Leads
           </Link>
           <Link
             href="/dashboard/modules"
-            className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
+            className={linkClass("/dashboard/modules")}
           >
             Module management
           </Link>
           <Link
             href="/account/password"
-            className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
+            className={linkClass("/account/password")}
           >
             Change password
           </Link>
