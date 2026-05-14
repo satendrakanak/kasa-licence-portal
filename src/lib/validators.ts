@@ -20,15 +20,25 @@ export const productSchema = z.object({
   description: z.string().optional(),
 });
 
+export const updateProductSchema = productSchema.extend({
+  productId: z.string().min(1),
+});
+
+export const deleteProductSchema = z.object({
+  productId: z.string().min(1),
+});
+
 export const licenseSchema = z.object({
   productId: z.string().min(1),
   buyerName: z.string().optional(),
   buyerEmail: z.string().email(),
   platform: z.string().min(2).default("manual"),
   purchaseRef: z.string().optional(),
+  edition: z.enum(["STARTER", "PLUS", "ENTERPRISE"]),
   plan: z.enum(["LIFETIME", "SIX_MONTHS", "TWELVE_MONTHS", "CUSTOM"]),
   maxActivations: z.coerce.number().int().min(1).max(50),
   expiresAt: z.string().optional(),
+  renewalUrl: z.string().url().optional().or(z.literal("")),
   notes: z.string().optional(),
 });
 
@@ -43,6 +53,25 @@ export const deactivateActivationSchema = z.object({
 
 export const deleteLicenseSchema = z.object({
   licenseId: z.string().min(1),
+});
+
+export const publicLeadSchema = z.object({
+  name: z.string().min(2).max(120),
+  email: z.string().email(),
+  institute: z.string().max(160).optional(),
+  phone: z.string().max(40).optional(),
+  message: z.string().min(10).max(3000),
+  source: z.string().max(100).optional().default("marketing-site"),
+});
+
+export const leadAssignmentSchema = z.object({
+  leadId: z.string().min(1),
+  assignedToId: z.string().optional(),
+});
+
+export const leadStatusUpdateSchema = z.object({
+  leadId: z.string().min(1),
+  status: z.enum(["NEW", "CONTACTED", "QUALIFIED", "WON", "CLOSED"]),
 });
 
 export const changePasswordSchema = z

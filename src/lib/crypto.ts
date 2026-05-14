@@ -7,9 +7,11 @@ export function sha256(value: string) {
 export function createLicenseKey(productPrefix = "KASA") {
   const cleanPrefix = productPrefix
     .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "")
-    .slice(0, 8) || "KASA";
-  const chunks = Array.from({ length: 3 }, () =>
+    .replace(/[^A-Z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 24) || "KASA";
+  const chunks = Array.from({ length: 4 }, () =>
     randomBytes(3).toString("hex").toUpperCase(),
   );
 

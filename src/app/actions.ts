@@ -1,6 +1,12 @@
 "use server";
 
-import { LicenseStatus, PlanType, ProductStatus } from "@prisma/client";
+import {
+  KasaEdition,
+  LeadStatus,
+  LicenseStatus,
+  PlanType,
+  ProductStatus,
+} from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createLicenseKey, encryptLicenseKey, previewLicenseKey, sha256 } from "@/lib/crypto";
@@ -22,6 +28,10 @@ import {
   setupSchema,
   changePasswordSchema,
   deleteLicenseSchema,
+  leadAssignmentSchema,
+  leadStatusUpdateSchema,
+  deleteProductSchema,
+  updateProductSchema,
 } from "@/lib/validators";
 
 function formObject(formData: FormData) {
@@ -103,19 +113,73 @@ export async function createProductAction(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+export async function updateProductAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = updateProductSchema.parse(formObject(formData));
+
+  const duplicate = await prisma.product.findUnique({
+    where: { slug: parsed.slug },
+    select: { id: true },
+  });
+
+  if (duplicate && duplicate.id !== parsed.productId) {
+    return { ok: false, message: "Another product already uses this slug." };
+  }
+
+  await prisma.product.update({
+    where: { id: parsed.productId },
+    data: {
+      name: parsed.name,
+      slug: parsed.slug,
+      description: parsed.description || null,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  return { ok: true, message: "Product updated." };
+}
+
+export async function deleteProductAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = deleteProductSchema.parse(formObject(formData));
+  const product = await prisma.product.findUnique({
+    where: { id: parsed.productId },
+    include: {
+      _count: {
+        select: {
+          licenses: true,
+        },
+      },
+    },
+  });
+
+  if (!product) {
+    return { ok: false, message: "Product could not be found." };
+  }
+
+  if (product._count.licenses > 0) {
+    return {
+      ok: false,
+      message: "Delete or archive licenses for this product before deleting it.",
+    };
+  }
+
+  await prisma.product.delete({
+    where: { id: parsed.productId },
+  });
+
+  revalidatePath("/dashboard");
+  return { ok: true, message: "Product deleted." };
+}
+
 export async function createLicenseAction(formData: FormData) {
   await requireAdmin();
   const parsed = licenseSchema.parse(formObject(formData));
-  const product = await prisma.product.findUniqueOrThrow({
+  await prisma.product.findUniqueOrThrow({
     where: { id: parsed.productId },
   });
-  const prefix = product.slug
-    .split("-")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 4)
-    .toUpperCase();
-  const key = createLicenseKey(prefix || "KASA");
+  const edition = parsed.edition as KasaEdition;
+  const key = createLicenseKey(`KASA-${edition}`);
   const plan = parsed.plan as PlanType;
 
   await prisma.license.create({
@@ -128,8 +192,10 @@ export async function createLicenseAction(formData: FormData) {
       buyerEmail: parsed.buyerEmail.toLowerCase(),
       platform: parsed.platform,
       purchaseRef: parsed.purchaseRef || null,
+      edition,
       plan,
       expiresAt: getPlanExpiry(plan, parsed.expiresAt),
+      renewalUrl: parsed.renewalUrl || null,
       maxActivations: parsed.maxActivations,
       notes: parsed.notes || null,
     },
@@ -244,4 +310,34 @@ export async function deactivateActivationAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+}
+
+export async function assignLeadAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = leadAssignmentSchema.parse(formObject(formData));
+
+  await prisma.lead.update({
+    where: { id: parsed.leadId },
+    data: {
+      assignedToId: parsed.assignedToId || null,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/leads");
+}
+
+export async function updateLeadStatusAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = leadStatusUpdateSchema.parse(formObject(formData));
+
+  await prisma.lead.update({
+    where: { id: parsed.leadId },
+    data: {
+      status: parsed.status as LeadStatus,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/leads");
 }

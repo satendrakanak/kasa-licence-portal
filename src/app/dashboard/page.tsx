@@ -1,8 +1,7 @@
 import {
   Activity,
-  Archive,
   Boxes,
-  CheckCircle2,
+  ChevronRight,
   Eye,
   KeyRound,
   LogOut,
@@ -18,10 +17,10 @@ import {
   createProductAction,
   deactivateActivationAction,
   logoutAction,
-  toggleProductStatusAction,
 } from "@/app/actions";
 import { LicenseKeyActions } from "@/components/license-key-actions";
 import { LicenseRowActions, LicenseStatusControl } from "@/components/license-table-controls";
+import { ProductCardControls } from "@/components/product-card-controls";
 import { requireAdmin } from "@/lib/auth";
 import { decryptLicenseKey } from "@/lib/crypto";
 import { prisma } from "@/lib/prisma";
@@ -54,9 +53,21 @@ export default async function DashboardPage({
 }) {
   const admin = await requireAdmin();
   const params = await searchParams;
+  const now = new Date();
+  const expiryWindow = new Date(now);
+  expiryWindow.setDate(expiryWindow.getDate() + 15);
 
-  const [products, licenses, activations, auditLogs, totals] = await Promise.all([
-    prisma.product.findMany({ orderBy: { createdAt: "desc" } }),
+  const [products, licenses, activations, auditLogs, recentLeads, totals] = await Promise.all([
+    prisma.product.findMany({
+      include: {
+        _count: {
+          select: {
+            licenses: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
     prisma.license.findMany({
       include: { product: true, activations: true },
       orderBy: { createdAt: "desc" },
@@ -72,15 +83,53 @@ export default async function DashboardPage({
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
+    prisma.lead.findMany({
+      include: { assignedTo: true },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
     Promise.all([
       prisma.product.count(),
       prisma.license.count(),
       prisma.licenseActivation.count({ where: { status: "ACTIVE" } }),
       prisma.license.count({ where: { status: "ACTIVE" } }),
+      prisma.lead.count(),
+      prisma.lead.count({ where: { status: "NEW" } }),
+      prisma.license.count({
+        where: {
+          status: "ACTIVE",
+          expiresAt: {
+            gt: now,
+            lte: expiryWindow,
+          },
+        },
+      }),
+      prisma.license.count({
+        where: {
+          OR: [
+            { status: "EXPIRED" },
+            {
+              status: "ACTIVE",
+              expiresAt: {
+                lte: now,
+              },
+            },
+          ],
+        },
+      }),
     ]),
   ]);
 
-  const [productCount, licenseCount, activeInstallations, activeLicenses] = totals;
+  const [
+    productCount,
+    licenseCount,
+    activeInstallations,
+    activeLicenses,
+    leadCount,
+    newLeadCount,
+    expiringSoonCount,
+    expiredCount,
+  ] = totals;
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#064e3b_0%,#020617_34%,#020617_100%)]">
@@ -94,6 +143,12 @@ export default async function DashboardPage({
             <div className="hidden rounded-2xl border border-white/10 px-4 py-2 text-sm text-slate-300 sm:block">
               {admin.name}
             </div>
+            <Link
+              href="/dashboard/leads"
+              className="rounded-2xl border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/10"
+            >
+              Leads
+            </Link>
             <Link
               href="/account/password"
               className="rounded-2xl border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/10"
@@ -131,6 +186,10 @@ export default async function DashboardPage({
                 <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-50/70">Installations</p>
                 <p className="mt-3 text-4xl font-semibold">{activeInstallations}</p>
               </div>
+              <div className="rounded-3xl border border-white/20 bg-white/10 p-5 sm:col-span-2 lg:col-span-1">
+                <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-50/70">New leads</p>
+                <p className="mt-3 text-4xl font-semibold">{newLeadCount}</p>
+              </div>
             </div>
           </div>
         </section>
@@ -148,11 +207,56 @@ export default async function DashboardPage({
           </section>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
           {stat("Products", productCount, "Future products can share this portal")}
           {stat("Licenses", licenseCount, "Marketplace and direct buyers")}
           {stat("Active installs", activeInstallations, "Current bound instances")}
           {stat("Healthy keys", activeLicenses, "Ready for activation checks")}
+          {stat("Expiring soon", expiringSoonCount, "Ending within 15 days")}
+          {stat("Expired", expiredCount, "Needs renewal follow-up")}
+          {stat("All leads", leadCount, "Queries captured from the marketing site")}
+          {stat("Fresh leads", newLeadCount, "Awaiting first response")}
+        </section>
+
+        <section className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <UserRound className="text-emerald-300" />
+              <div>
+                <h2 className="text-2xl font-semibold">Recent leads</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  New website queries auto-land here and can be assigned from the leads workspace.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/dashboard/leads"
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/10"
+            >
+              Open leads workspace <ChevronRight size={16} />
+            </Link>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {recentLeads.map((lead) => (
+              <article key={lead.id} className="rounded-3xl border border-white/10 bg-slate-950/70 p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold">{lead.name}</h3>
+                    <p className="mt-1 text-sm text-emerald-300">{lead.email}</p>
+                  </div>
+                  <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">
+                    {lead.status}
+                  </span>
+                </div>
+                <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-400">{lead.message}</p>
+                <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                  <span>{lead.institute || "No institute shared"}</span>
+                  <span>{lead.assignedTo?.name || "Unassigned"}</span>
+                </div>
+              </article>
+            ))}
+          </div>
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
@@ -189,6 +293,11 @@ export default async function DashboardPage({
               <input name="buyerEmail" type="email" required placeholder="buyer@email.com" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none" />
               <input name="platform" defaultValue="manual" placeholder="envato / direct / manual" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none" />
               <input name="purchaseRef" placeholder="Purchase reference" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none" />
+              <select name="edition" defaultValue="ENTERPRISE" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none">
+                <option value="STARTER">KASA Starter</option>
+                <option value="PLUS">KASA Plus</option>
+                <option value="ENTERPRISE">KASA Enterprise</option>
+              </select>
               <select name="plan" defaultValue="LIFETIME" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none">
                 <option value="LIFETIME">Lifetime</option>
                 <option value="SIX_MONTHS">6 months</option>
@@ -197,6 +306,7 @@ export default async function DashboardPage({
               </select>
               <input name="expiresAt" type="date" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none" />
               <input name="maxActivations" type="number" min={1} max={50} defaultValue={1} className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none" />
+              <input name="renewalUrl" type="url" placeholder="Renewal URL" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none md:col-span-2" />
               <textarea name="notes" placeholder="Internal notes" className="min-h-24 rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none md:col-span-2" />
               <button className="rounded-2xl bg-emerald-400 px-5 py-3 font-semibold text-slate-950 hover:bg-emerald-300 md:col-span-2">
                 Generate license
@@ -217,18 +327,24 @@ export default async function DashboardPage({
                   <div>
                     <h3 className="text-lg font-semibold">{product.name}</h3>
                     <p className="mt-1 font-mono text-sm text-emerald-300">{product.slug}</p>
+                    <p className="mt-2 text-xs text-slate-500">
+                      {product._count.licenses} license{product._count.licenses === 1 ? "" : "s"}
+                    </p>
                   </div>
                   <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">{product.status}</span>
                 </div>
-                <p className="mt-4 text-sm leading-6 text-slate-400">{product.description || "No description yet."}</p>
-                <form action={toggleProductStatusAction} className="mt-5">
-                  <input type="hidden" name="productId" value={product.id} />
-                  <input type="hidden" name="status" value={product.status === "ACTIVE" ? "ARCHIVED" : "ACTIVE"} />
-                  <button className="inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-2 text-sm hover:bg-white/10">
-                    {product.status === "ACTIVE" ? <Archive size={16} /> : <CheckCircle2 size={16} />}
-                    {product.status === "ACTIVE" ? "Archive" : "Restore"}
-                  </button>
-                </form>
+                <div className="mt-5">
+                  <ProductCardControls
+                    product={{
+                      id: product.id,
+                      name: product.name,
+                      slug: product.slug,
+                      description: product.description,
+                      status: product.status,
+                      licenseCount: product._count.licenses,
+                    }}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -256,7 +372,7 @@ export default async function DashboardPage({
                   <th className="px-4 py-4">Buyer</th>
                   <th className="px-4 py-4">Product</th>
                   <th className="px-4 py-4">License key</th>
-                  <th className="px-4 py-4">Plan</th>
+                  <th className="px-4 py-4">Edition</th>
                   <th className="px-4 py-4">Status</th>
                   <th className="px-4 py-4">Installs</th>
                   <th className="px-4 py-4">Expiry</th>
@@ -305,8 +421,26 @@ export default async function DashboardPage({
                     </td>
                     <td className="px-4 py-5 align-top">
                       <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-200">
-                        {license.plan.replace("_", " ")}
+                        {license.edition}
                       </span>
+                      <p className="mt-2 text-xs text-slate-500">
+                        {license.plan.replace("_", " ")}
+                      </p>
+                      {license.renewalUrl ? (
+                        <a
+                          href={license.renewalUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-flex text-xs text-emerald-300 hover:text-emerald-200"
+                        >
+                          Renewal link
+                        </a>
+                      ) : null}
+                      {license.expiryNoticeLastSentAt ? (
+                        <p className="mt-2 text-xs text-slate-500">
+                          Notice sent {formatDate(license.expiryNoticeLastSentAt)}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-4 py-5 align-top">
                       <LicenseStatusControl licenseId={license.id} status={license.status} />
@@ -387,7 +521,7 @@ export default async function DashboardPage({
           <pre className="mt-5 overflow-x-auto rounded-3xl border border-white/10 bg-slate-950 p-5 text-sm text-slate-300">
 {`POST /api/v1/licenses/activate
 {
-  "licenseKey": "KASA-XXXX-XXXX-XXXX-XXXX",
+  "licenseKey": "KASA-ENTERPRISE-XXXXXX-XXXXXX-XXXXXX-XXXXXX",
   "productSlug": "kasa-enterprise",
   "instanceId": "server-or-installation-uuid",
   "instanceLabel": "Client production server",

@@ -143,7 +143,8 @@ export async function activateLicense(input: ActivationInput) {
     license: {
       id: license.id,
       product: license.product.slug,
-      plan: license.plan,
+      plan: license.edition,
+      term: license.plan,
       expiresAt: license.expiresAt?.toISOString() || null,
       maxActivations: license.maxActivations,
       activeActivations: existingActivation

@@ -27,9 +27,23 @@ enum PlanType {
   CUSTOM
 }
 
+enum KasaEdition {
+  STARTER
+  PLUS
+  ENTERPRISE
+}
+
 enum ActivationStatus {
   ACTIVE
   DEACTIVATED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  WON
+  CLOSED
 }
 
 model AdminUser {
@@ -39,6 +53,7 @@ model AdminUser {
   passwordHash String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  assignedLeads Lead[]  @relation("LeadAssignee")
 }
 
 model Product {
@@ -63,8 +78,12 @@ model License {
   buyerEmail     String
   platform       String              @default("manual")
   purchaseRef    String?
+  edition        KasaEdition         @default(ENTERPRISE)
   plan           PlanType            @default(LIFETIME)
   expiresAt      DateTime?
+  renewalUrl     String?
+  expiryNoticeLastSentAt DateTime?
+  expiryNoticeCount      Int         @default(0)
   maxActivations Int                 @default(1)
   status         LicenseStatus       @default(ACTIVE)
   notes          String?
@@ -75,6 +94,8 @@ model License {
 
   @@index([buyerEmail])
   @@index([productId, status])
+  @@index([edition, status])
+  @@index([expiresAt, status])
 }
 
 model LicenseActivation {
@@ -106,4 +127,26 @@ model AuditLog {
 
   @@index([licenseId])
   @@index([action])
+}
+
+model Lead {
+  id           String     @id @default(cuid())
+  name         String
+  email        String
+  institute    String?
+  phone        String?
+  message      String
+  source       String     @default("marketing-site")
+  status       LeadStatus @default(NEW)
+  assignedToId String?
+  assignedTo   AdminUser? @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  notes        String?
+  emailedAt    DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([createdAt])
 }
