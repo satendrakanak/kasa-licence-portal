@@ -1,5 +1,7 @@
 import {
   Activity,
+  Banknote,
+  BarChart3,
   Boxes,
   ChevronRight,
   Eye,
@@ -9,9 +11,11 @@ import {
   PackagePlus,
   PauseCircle,
   ShieldCheck,
+  TrendingUp,
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   createLicenseAction,
   createProductAction,
@@ -36,12 +40,76 @@ function formatDate(date: Date | null | undefined) {
   }).format(date);
 }
 
+function formatMoney(value: number, currency = "INR") {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function getMonthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getShortMonth(date: Date) {
+  return new Intl.DateTimeFormat("en-IN", {
+    month: "short",
+    year: "2-digit",
+    timeZone: "Asia/Kolkata",
+  }).format(date);
+}
+
 function stat(label: string, value: string | number, helper: string) {
   return (
     <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-5">
       <p className="text-sm text-slate-400">{label}</p>
       <p className="mt-4 text-4xl font-semibold">{value}</p>
       <p className="mt-4 text-sm text-slate-500">{helper}</p>
+    </div>
+  );
+}
+
+function BreakdownCard({
+  icon,
+  title,
+  rows,
+}: {
+  icon: ReactNode;
+  title: string;
+  rows: Array<{ label: string; count: number; revenue: number }>;
+}) {
+  const peak = Math.max(...rows.map((row) => row.revenue), 1);
+
+  return (
+    <div className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-6">
+      <div className="flex items-center gap-3">
+        {icon}
+        <h2 className="text-2xl font-semibold">{title}</h2>
+      </div>
+      <div className="mt-5 space-y-4">
+        {rows.map((row) => (
+          <div key={row.label} className="space-y-2">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="font-medium capitalize text-slate-200">
+                {row.label.replace(/[-_]/g, " ")}
+              </span>
+              <span className="text-slate-400">
+                {formatMoney(row.revenue)} · {row.count}
+              </span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-950">
+              <div
+                className="h-full rounded-full bg-emerald-400"
+                style={{ width: `${Math.max(4, Math.round((row.revenue / peak) * 100))}%` }}
+              />
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 ? (
+          <p className="text-sm text-slate-400">No paid sales recorded yet.</p>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -54,10 +122,21 @@ export default async function DashboardPage({
   const admin = await requireAdmin();
   const params = await searchParams;
   const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
   const expiryWindow = new Date(now);
   expiryWindow.setDate(expiryWindow.getDate() + 15);
 
-  const [products, licenses, activations, auditLogs, recentLeads, totals] = await Promise.all([
+  const [
+    products,
+    licenses,
+    activations,
+    auditLogs,
+    recentLeads,
+    salesLicenses,
+    totals,
+  ] = await Promise.all([
     prisma.product.findMany({
       include: {
         _count: {
@@ -87,6 +166,16 @@ export default async function DashboardPage({
       include: { assignedTo: true },
       orderBy: { createdAt: "desc" },
       take: 6,
+    }),
+    prisma.license.findMany({
+      include: { product: true },
+      where: {
+        soldAt: {
+          gte: sixMonthsAgo,
+        },
+      },
+      orderBy: { soldAt: "desc" },
+      take: 500,
     }),
     Promise.all([
       prisma.product.count(),
@@ -130,6 +219,75 @@ export default async function DashboardPage({
     expiringSoonCount,
     expiredCount,
   ] = totals;
+  const paidSalesLicenses = salesLicenses.filter(
+    (license) => Number(license.saleAmount) > 0,
+  );
+  const monthRevenue = paidSalesLicenses
+    .filter((license) => license.soldAt >= monthStart)
+    .reduce((sum, license) => sum + Number(license.saleAmount), 0);
+  const yearRevenue = paidSalesLicenses
+    .filter((license) => license.soldAt >= yearStart)
+    .reduce((sum, license) => sum + Number(license.saleAmount), 0);
+  const totalRevenue = paidSalesLicenses.reduce(
+    (sum, license) => sum + Number(license.saleAmount),
+    0,
+  );
+  const averageOrderValue = paidSalesLicenses.length
+    ? Math.round(totalRevenue / paidSalesLicenses.length)
+    : 0;
+  const channelRows = Object.values(
+    paidSalesLicenses.reduce(
+      (acc, license) => {
+        const key = license.saleChannel || license.platform || "unknown";
+        acc[key] ??= { label: key, count: 0, revenue: 0 };
+        acc[key].count += 1;
+        acc[key].revenue += Number(license.saleAmount);
+        return acc;
+      },
+      {} as Record<string, { label: string; count: number; revenue: number }>,
+    ),
+  ).sort((a, b) => b.revenue - a.revenue);
+  const sourceRows = Object.values(
+    paidSalesLicenses.reduce(
+      (acc, license) => {
+        const key = license.marketingSource || "unknown";
+        acc[key] ??= { label: key, count: 0, revenue: 0 };
+        acc[key].count += 1;
+        acc[key].revenue += Number(license.saleAmount);
+        return acc;
+      },
+      {} as Record<string, { label: string; count: number; revenue: number }>,
+    ),
+  ).sort((a, b) => b.revenue - a.revenue);
+  const editionRows = Object.values(
+    paidSalesLicenses.reduce(
+      (acc, license) => {
+        const key = license.edition;
+        acc[key] ??= { label: key, count: 0, revenue: 0 };
+        acc[key].count += 1;
+        acc[key].revenue += Number(license.saleAmount);
+        return acc;
+      },
+      {} as Record<string, { label: string; count: number; revenue: number }>,
+    ),
+  ).sort((a, b) => b.revenue - a.revenue);
+  const monthRows = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    const key = getMonthKey(date);
+    const revenue = paidSalesLicenses
+      .filter((license) => getMonthKey(license.soldAt) === key)
+      .reduce((sum, license) => sum + Number(license.saleAmount), 0);
+    const count = paidSalesLicenses.filter(
+      (license) => getMonthKey(license.soldAt) === key,
+    ).length;
+
+    return {
+      label: getShortMonth(date),
+      revenue,
+      count,
+    };
+  });
+  const recentSales = paidSalesLicenses.slice(0, 8);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#064e3b_0%,#020617_34%,#020617_100%)]">
@@ -208,6 +366,9 @@ export default async function DashboardPage({
         ) : null}
 
         <section className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
+          {stat("Month revenue", formatMoney(monthRevenue), "Closed sales this month")}
+          {stat("Year revenue", formatMoney(yearRevenue), "Closed sales this year")}
+          {stat("Avg order", formatMoney(averageOrderValue), "Across paid license sales")}
           {stat("Products", productCount, "Future products can share this portal")}
           {stat("Licenses", licenseCount, "Marketplace and direct buyers")}
           {stat("Active installs", activeInstallations, "Current bound instances")}
@@ -216,6 +377,115 @@ export default async function DashboardPage({
           {stat("Expired", expiredCount, "Needs renewal follow-up")}
           {stat("All leads", leadCount, "Queries captured from the marketing site")}
           {stat("Fresh leads", newLeadCount, "Awaiting first response")}
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-6">
+            <div className="flex items-center gap-3">
+              <BarChart3 className="text-emerald-300" />
+              <div>
+                <h2 className="text-2xl font-semibold">Revenue trend</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Six-month sales view across direct, marketplace, and campaign channels.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 grid h-72 grid-cols-6 items-end gap-3">
+              {monthRows.map((row) => {
+                const peak = Math.max(...monthRows.map((item) => item.revenue), 1);
+                const height = Math.max(8, Math.round((row.revenue / peak) * 100));
+
+                return (
+                  <div key={row.label} className="flex h-full flex-col justify-end gap-3">
+                    <div className="text-center text-xs text-slate-400">
+                      <p>{formatMoney(row.revenue)}</p>
+                      <p>{row.count} sale{row.count === 1 ? "" : "s"}</p>
+                    </div>
+                    <div className="flex h-48 items-end rounded-2xl bg-slate-950 p-2">
+                      <div
+                        className="w-full rounded-xl bg-emerald-400"
+                        style={{ height: `${height}%` }}
+                      />
+                    </div>
+                    <p className="text-center text-xs font-medium text-slate-300">
+                      {row.label}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid gap-6">
+            <BreakdownCard
+              icon={<Banknote className="text-emerald-300" />}
+              title="Sales by channel"
+              rows={channelRows}
+            />
+            <BreakdownCard
+              icon={<TrendingUp className="text-emerald-300" />}
+              title="Marketing source"
+              rows={sourceRows}
+            />
+          </div>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+          <BreakdownCard
+            icon={<ShieldCheck className="text-emerald-300" />}
+            title="Edition revenue"
+            rows={editionRows}
+          />
+          <div className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-6">
+            <div className="flex items-center gap-3">
+              <Banknote className="text-emerald-300" />
+              <div>
+                <h2 className="text-2xl font-semibold">Recent sales</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Latest paid license sales with buyer, source, and amount.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 overflow-x-auto rounded-3xl border border-white/10">
+              <table className="w-full min-w-[760px] text-left text-sm">
+                <thead className="bg-slate-950/70 text-slate-400">
+                  <tr>
+                    <th className="px-4 py-4">Buyer</th>
+                    <th className="px-4 py-4">Product</th>
+                    <th className="px-4 py-4">Channel</th>
+                    <th className="px-4 py-4">Source</th>
+                    <th className="px-4 py-4 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentSales.map((license) => (
+                    <tr key={license.id} className="border-t border-white/10">
+                      <td className="px-4 py-4">
+                        <p className="font-semibold">{license.buyerName || "Unnamed buyer"}</p>
+                        <p className="mt-1 text-xs text-slate-500">{license.buyerEmail}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <p>{license.product.name}</p>
+                        <p className="mt-1 text-xs text-emerald-300">{license.edition}</p>
+                      </td>
+                      <td className="px-4 py-4 text-slate-300">{license.saleChannel}</td>
+                      <td className="px-4 py-4 text-slate-300">{license.marketingSource || "unknown"}</td>
+                      <td className="px-4 py-4 text-right font-semibold">
+                        {formatMoney(Number(license.saleAmount), license.saleCurrency)}
+                      </td>
+                    </tr>
+                  ))}
+                  {recentSales.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-5 text-slate-400" colSpan={5}>
+                        No paid sales yet.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <section className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-6">
@@ -293,6 +563,16 @@ export default async function DashboardPage({
               <input name="buyerEmail" type="email" required placeholder="buyer@email.com" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none" />
               <input name="platform" defaultValue="manual" placeholder="envato / direct / manual" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none" />
               <input name="purchaseRef" placeholder="Purchase reference" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none" />
+              <input name="saleAmount" type="number" min={0} step="0.01" placeholder="Sale amount" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none" />
+              <input name="saleCurrency" defaultValue="INR" maxLength={3} placeholder="INR" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 uppercase outline-none" />
+              <select name="saleChannel" defaultValue="direct-website" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none">
+                <option value="direct-website">Direct website</option>
+                <option value="envato">Envato</option>
+                <option value="manual-invoice">Manual invoice</option>
+                <option value="partner">Partner</option>
+              </select>
+              <input name="marketingSource" placeholder="fb / instagram / google / referral" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none" />
+              <input name="soldAt" type="date" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none" />
               <select name="edition" defaultValue="ENTERPRISE" className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none">
                 <option value="STARTER">KASA Starter</option>
                 <option value="PLUS">KASA Plus</option>
@@ -390,6 +670,13 @@ export default async function DashboardPage({
                       ) : (
                         <p className="mt-2 text-xs text-slate-500">{license.platform}</p>
                       )}
+                      <p className="mt-2 text-xs font-semibold text-emerald-300">
+                        {formatMoney(Number(license.saleAmount), license.saleCurrency)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {license.saleChannel}
+                        {license.marketingSource ? ` · ${license.marketingSource}` : ""}
+                      </p>
                     </td>
                     <td className="px-4 py-5 align-top">
                       <p className="break-words font-medium">{license.product.name}</p>

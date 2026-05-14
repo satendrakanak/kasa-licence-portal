@@ -43,7 +43,18 @@ function encryptLicenseKey(key) {
   return [iv, tag, encrypted].map((part) => part.toString("base64url")).join(".");
 }
 
-async function upsertLicense({ productId, edition, buyerName, buyerEmail, platform, purchaseRef, maxActivations }) {
+async function upsertLicense({
+  productId,
+  edition,
+  buyerName,
+  buyerEmail,
+  platform,
+  purchaseRef,
+  maxActivations,
+  saleAmount,
+  saleChannel,
+  marketingSource,
+}) {
   const existing = await prisma.license.findFirst({
     where: { buyerEmail, productId },
   });
@@ -61,6 +72,11 @@ async function upsertLicense({ productId, edition, buyerName, buyerEmail, platfo
       buyerEmail,
       platform,
       purchaseRef,
+      saleAmount,
+      saleCurrency: "INR",
+      saleChannel,
+      marketingSource,
+      soldAt: new Date(),
       edition,
       plan: PlanType.LIFETIME,
       maxActivations,
@@ -112,6 +128,9 @@ async function main() {
     platform: "direct",
     purchaseRef: "DEMO-ENT-001",
     maxActivations: 1,
+    saleAmount: 49999,
+    saleChannel: "direct-website",
+    marketingSource: "demo-seed",
   });
   if (enterpriseKey) generatedKeys.push(["Kasa Enterprise", enterpriseKey]);
 
@@ -123,6 +142,9 @@ async function main() {
     platform: "envato",
     purchaseRef: "DEMO-STK-001",
     maxActivations: 2,
+    saleAmount: 9999,
+    saleChannel: "envato",
+    marketingSource: "marketplace",
   });
   if (starterKey) generatedKeys.push(["Kasa Starter Kit", starterKey]);
 

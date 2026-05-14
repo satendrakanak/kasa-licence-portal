@@ -78,6 +78,11 @@ model License {
   buyerEmail     String
   platform       String              @default("manual")
   purchaseRef    String?
+  saleAmount     Decimal             @default(0) @db.Decimal(12, 2)
+  saleCurrency   String              @default("INR")
+  saleChannel    String              @default("direct")
+  marketingSource String?
+  soldAt         DateTime            @default(now())
   edition        KasaEdition         @default(ENTERPRISE)
   plan           PlanType            @default(LIFETIME)
   expiresAt      DateTime?
@@ -96,6 +101,9 @@ model License {
   @@index([productId, status])
   @@index([edition, status])
   @@index([expiresAt, status])
+  @@index([saleChannel, soldAt])
+  @@index([marketingSource, soldAt])
+  @@index([soldAt])
 }
 
 model LicenseActivation {
