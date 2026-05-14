@@ -5,11 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/app/actions";
 
-type DashboardHeaderProps = {
-  adminName: string;
-};
-
-export function DashboardHeader({ adminName }: DashboardHeaderProps) {
+export function DashboardHeader() {
   const pathname = usePathname();
   const linkClass = (href: string) => {
     const active = href === "/dashboard" ? pathname === href : pathname?.startsWith(href);
@@ -26,16 +22,13 @@ export function DashboardHeader({ adminName }: DashboardHeaderProps) {
       <div className="mx-auto flex max-w-[1500px] flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
         <Link href="/dashboard" className="w-fit">
           <p className="text-xs font-bold uppercase tracking-[0.28em] text-emerald-300">
-            Kasa Licence Portal
+            KASA Admin
           </p>
           <h1 className="mt-1 text-2xl font-semibold text-white">
-            Product licensing workspace
+            Admin control workspace
           </h1>
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-300">
-            {adminName}
-          </div>
           <Link
             href="/dashboard"
             className={linkClass("/dashboard")}
@@ -47,6 +40,12 @@ export function DashboardHeader({ adminName }: DashboardHeaderProps) {
             className={linkClass("/dashboard/leads")}
           >
             Leads
+          </Link>
+          <Link
+            href="/dashboard/licenses"
+            className={linkClass("/dashboard/licenses")}
+          >
+            Licenses
           </Link>
           <Link
             href="/dashboard/modules"
@@ -61,7 +60,7 @@ export function DashboardHeader({ adminName }: DashboardHeaderProps) {
             Change password
           </Link>
           <form action={logoutAction}>
-            <button className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/10">
+            <button className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/10">
               <LogOut size={16} /> Logout
             </button>
           </form>

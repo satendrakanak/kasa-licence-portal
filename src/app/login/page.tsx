@@ -21,7 +21,7 @@ export default async function LoginPage({
           <KeyRound size={28} />
         </div>
         <h1 className="mt-6 text-center text-3xl font-semibold">Welcome back</h1>
-        <p className="mt-2 text-center text-slate-400">Sign in to manage products and licenses.</p>
+        <p className="mt-2 text-center text-slate-400">Sign in to manage KASA operations.</p>
         {params.error ? (
           <div className="mt-6 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
             Invalid email or password.
@@ -37,7 +37,7 @@ export default async function LoginPage({
             <input name="password" type="password" required className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none ring-emerald-400/30 focus:ring-4" />
           </label>
         </div>
-        <button className="mt-8 w-full rounded-2xl bg-emerald-400 px-5 py-4 font-semibold text-slate-950 transition hover:bg-emerald-300">
+        <button className="mt-8 w-full cursor-pointer rounded-2xl bg-emerald-400 px-5 py-4 font-semibold text-slate-950 transition hover:bg-emerald-300">
           Sign in
         </button>
       </form>

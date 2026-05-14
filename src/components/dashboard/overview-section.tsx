@@ -65,13 +65,13 @@ export function OverviewSection({ metrics }: OverviewSectionProps) {
         <div className="grid items-start gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.28em] text-emerald-300">
-              Licence Operations
+              KASA Operations
             </p>
             <h2 className="mt-3 max-w-3xl text-2xl font-semibold leading-tight text-white md:text-3xl">
-              Sales, activation control, renewals, and product editions.
+              Sales, leads, module policy, and product health.
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-              Track revenue source, issue keys, suspend access, review installs, and follow renewal risk from the same dashboard.
+              Track revenue, lead flow, license health, and product signals from one admin workspace.
             </p>
           </div>
           <div className="grid gap-4 lg:grid-cols-3">

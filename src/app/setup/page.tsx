@@ -17,11 +17,11 @@ export default async function SetupPage() {
             <ShieldCheck size={16} /> Secure Setup
           </p>
           <h1 className="max-w-xl text-5xl font-semibold tracking-tight text-white">
-            Create the licence command center.
+            Create the KASA Admin workspace.
           </h1>
           <p className="mt-5 max-w-lg text-lg leading-8 text-slate-300">
-            This portal will manage products, buyers, license keys, activations,
-            expiry windows, and audit trails for Kasa Enterprise and future products.
+            KASA Admin manages leads, products, licenses, module policies,
+            expiry windows, and audit trails for current and future products.
           </p>
           <div className="mt-8 grid gap-3 text-sm text-slate-300 sm:grid-cols-2">
             {["Multiple products", "Activation limits", "Buyer records", "API verification"].map((item) => (
@@ -49,8 +49,8 @@ export default async function SetupPage() {
               <input name="password" type="password" minLength={8} required className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 outline-none ring-emerald-400/30 focus:ring-4" />
             </label>
           </div>
-          <button className="mt-8 w-full rounded-2xl bg-emerald-400 px-5 py-4 font-semibold text-slate-950 transition hover:bg-emerald-300">
-            Create portal
+          <button className="mt-8 w-full cursor-pointer rounded-2xl bg-emerald-400 px-5 py-4 font-semibold text-slate-950 transition hover:bg-emerald-300">
+            Create KASA Admin
           </button>
         </form>
       </section>

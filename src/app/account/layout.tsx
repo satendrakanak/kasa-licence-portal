@@ -7,7 +7,7 @@ export default async function AccountLayout({
 }: {
   children: ReactNode;
 }) {
-  const admin = await requireAdmin();
+  await requireAdmin();
 
-  return <PortalLayout adminName={admin.name}>{children}</PortalLayout>;
+  return <PortalLayout>{children}</PortalLayout>;
 }

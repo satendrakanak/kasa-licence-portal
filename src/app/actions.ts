@@ -130,6 +130,7 @@ export async function createProductAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/licenses");
 }
 
 export async function updateProductAction(formData: FormData) {
@@ -155,6 +156,7 @@ export async function updateProductAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/licenses");
   return { ok: true, message: "Product updated." };
 }
 
@@ -188,6 +190,7 @@ export async function deleteProductAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/licenses");
   return { ok: true, message: "Product deleted." };
 }
 
@@ -236,6 +239,7 @@ export async function createProductPriceAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/licenses");
   return { ok: true, message: "Pricing saved." };
 }
 
@@ -258,6 +262,7 @@ export async function deleteProductPriceAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/licenses");
   return { ok: true, message: "Pricing deleted." };
 }
 
@@ -271,6 +276,7 @@ export async function toggleProductPriceStatusAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/licenses");
   return { ok: true, message: "Pricing status updated." };
 }
 
@@ -320,6 +326,7 @@ export async function createLicenseAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/licenses");
   return { ok: true, message: "License generated.", licenseKey: key };
 }
 
@@ -376,6 +383,7 @@ export async function updateLicenseStatusAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/licenses");
   return { ok: true, message: "License status updated." };
 }
 
@@ -454,6 +462,7 @@ export async function revokeLicenseAccessAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/licenses");
   return {
     ok: true,
     message: "License access revoked. You can delete the key now if it is no longer needed.",
@@ -503,6 +512,7 @@ export async function deleteUnusedLicenseAction(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/licenses");
   return { ok: true, message: "Unused license deleted successfully." };
 }
 

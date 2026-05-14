@@ -21,3 +21,12 @@ body {
 ::selection {
   background: rgba(74, 222, 128, 0.35);
 }
+
+button:not(:disabled),
+a[href],
+summary,
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]),
+select {
+  cursor: pointer;
+}

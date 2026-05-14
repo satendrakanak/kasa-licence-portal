@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kasa Licence Portal",
-  description: "Product, buyer, and licence activation management for Kasa software.",
+  title: "KASA Admin",
+  description: "Internal control plane for KASA sales, leads, modules, and licensing.",
 };
 
 export default function RootLayout({
