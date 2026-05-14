@@ -82,6 +82,10 @@ export const deleteLicenseSchema = z.object({
   licenseId: z.string().min(1),
 });
 
+export const revokeLicenseAccessSchema = z.object({
+  licenseId: z.string().min(1),
+});
+
 export const publicLeadSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email(),

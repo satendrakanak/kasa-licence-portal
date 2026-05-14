@@ -51,9 +51,7 @@ async function findLicenseByKey(input: Pick<ActivationInput, "licenseKey" | "pro
     },
     include: {
       product: true,
-      activations: {
-        where: { status: "ACTIVE" },
-      },
+      activations: true,
     },
   });
 
@@ -65,9 +63,7 @@ async function findLicenseByKey(input: Pick<ActivationInput, "licenseKey" | "pro
     where: { keyHash },
     include: {
       product: true,
-      activations: {
-        where: { status: "ACTIVE" },
-      },
+      activations: true,
     },
   });
 }
@@ -132,8 +128,19 @@ async function activateLicenseRecord(
   const existingActivation = license.activations.find(
     (activation) => activation.instanceIdHash === instanceIdHash,
   );
+  const activeActivations = license.activations.filter(
+    (activation) => activation.status === "ACTIVE",
+  );
 
-  if (!existingActivation && license.activations.length >= license.maxActivations) {
+  if (existingActivation?.status === "DEACTIVATED") {
+    return {
+      ok: false as const,
+      code: "INSTALLATION_DEACTIVATED",
+      message: "This installation has been deactivated by the license administrator.",
+    };
+  }
+
+  if (!existingActivation && activeActivations.length >= license.maxActivations) {
     return {
       ok: false as const,
       code: "ACTIVATION_LIMIT_REACHED",
@@ -196,8 +203,8 @@ async function activateLicenseRecord(
       expiresAt: license.expiresAt?.toISOString() || null,
       maxActivations: license.maxActivations,
       activeActivations: existingActivation
-        ? license.activations.length
-        : license.activations.length + 1,
+        ? activeActivations.length
+        : activeActivations.length + 1,
       limits: {
         ...getLicenseLimits(license),
       },

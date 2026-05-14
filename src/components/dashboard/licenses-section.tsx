@@ -44,6 +44,9 @@ export function LicensesSection({ licenses }: { licenses: DashboardData["license
               const activeActivations = license.activations.filter(
                 (item) => item.status === "ACTIVE",
               ).length;
+              const deactivatedActivations = license.activations.filter(
+                (item) => item.status === "DEACTIVATED",
+              ).length;
 
               return (
                 <tr key={license.id} className="border-b border-white/10 last:border-0">
@@ -60,6 +63,9 @@ export function LicensesSection({ licenses }: { licenses: DashboardData["license
                     <p className="mt-1 text-xs text-slate-500">
                       {license.saleChannel}
                       {license.marketingSource ? ` · ${license.marketingSource}` : ""}
+                    </p>
+                    <p className="mt-2 text-xs text-slate-500">
+                      Sold {formatDate(license.soldAt)}
                     </p>
                   </td>
                   <td className="px-4 py-5 align-top">
@@ -94,6 +100,10 @@ export function LicensesSection({ licenses }: { licenses: DashboardData["license
                     <p className="mt-2 text-xs text-slate-500">
                       {license.plan.replace("_", " ")}
                     </p>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                      Users {license.userLimit ?? "∞"} · Courses {license.courseLimit ?? "∞"} · Faculty{" "}
+                      {license.facultyLimit ?? "∞"}
+                    </p>
                     {license.renewalUrl ? (
                       <a
                         href={license.renewalUrl}
@@ -117,6 +127,11 @@ export function LicensesSection({ licenses }: { licenses: DashboardData["license
                     <span className="rounded-full border border-white/10 px-3 py-1 text-sm text-slate-200">
                       {activeActivations}/{license.maxActivations}
                     </span>
+                    {deactivatedActivations > 0 ? (
+                      <p className="mt-2 text-xs text-red-200">
+                        {deactivatedActivations} deactivated
+                      </p>
+                    ) : null}
                   </td>
                   <td className="px-4 py-5 align-top text-slate-300">
                     {formatDate(license.expiresAt)}
@@ -124,6 +139,7 @@ export function LicensesSection({ licenses }: { licenses: DashboardData["license
                   <td className="px-4 py-5 align-top">
                     <LicenseRowActions
                       licenseId={license.id}
+                      status={license.status}
                       canDelete={activeActivations === 0}
                       hasDownload={Boolean(license.keyEncrypted)}
                     />

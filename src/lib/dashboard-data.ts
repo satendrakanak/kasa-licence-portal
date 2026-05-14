@@ -80,12 +80,12 @@ export async function getDashboardData() {
     prisma.licenseActivation.findMany({
       include: { license: { include: { product: true } } },
       orderBy: { lastSeenAt: "desc" },
-      take: 20,
+      take: 12,
     }),
     prisma.auditLog.findMany({
       include: { license: { include: { product: true } } },
       orderBy: { createdAt: "desc" },
-      take: 12,
+      take: 16,
     }),
     prisma.lead.findMany({
       include: { assignedTo: true },

@@ -31,6 +31,7 @@ import {
   setupSchema,
   changePasswordSchema,
   deleteLicenseSchema,
+  revokeLicenseAccessSchema,
   leadAssignmentSchema,
   leadStatusUpdateSchema,
   deleteProductSchema,
@@ -334,13 +335,87 @@ export async function updateLicenseStatusAction(formData: FormData) {
   await requireAdmin();
   const parsed = licenseStatusSchema.parse(formObject(formData));
 
-  await prisma.license.update({
-    where: { id: parsed.licenseId },
-    data: { status: parsed.status as LicenseStatus },
+  const status = parsed.status as LicenseStatus;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.license.update({
+      where: { id: parsed.licenseId },
+      data: { status },
+    });
+
+    if (status !== LicenseStatus.ACTIVE) {
+      await tx.licenseActivation.updateMany({
+        where: { licenseId: parsed.licenseId, status: "ACTIVE" },
+        data: { status: "DEACTIVATED", deactivatedAt: new Date() },
+      });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        licenseId: parsed.licenseId,
+        action: status === LicenseStatus.ACTIVE ? "license.reactivated" : "license.access_revoked",
+        actor: "admin",
+        details: { status },
+      },
+    });
   });
 
   revalidatePath("/dashboard");
   return { ok: true, message: "License status updated." };
+}
+
+export async function revokeLicenseAccessAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = revokeLicenseAccessSchema.parse(formObject(formData));
+
+  const license = await prisma.license.findUnique({
+    where: { id: parsed.licenseId },
+    select: {
+      id: true,
+      status: true,
+      keyPreview: true,
+      buyerEmail: true,
+      activations: {
+        where: { status: "ACTIVE" },
+        select: { id: true },
+      },
+    },
+  });
+
+  if (!license) {
+    return { ok: false, message: "License could not be found." };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.license.update({
+      where: { id: license.id },
+      data: { status: LicenseStatus.SUSPENDED },
+    });
+
+    await tx.licenseActivation.updateMany({
+      where: { licenseId: license.id, status: "ACTIVE" },
+      data: { status: "DEACTIVATED", deactivatedAt: new Date() },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        licenseId: license.id,
+        action: "license.access_revoked",
+        actor: "admin",
+        details: {
+          keyPreview: license.keyPreview,
+          buyerEmail: license.buyerEmail,
+          deactivatedInstallations: license.activations.length,
+        },
+      },
+    });
+  });
+
+  revalidatePath("/dashboard");
+  return {
+    ok: true,
+    message: "License access revoked. You can delete the key now if it is no longer needed.",
+  };
 }
 
 export async function deleteUnusedLicenseAction(formData: FormData) {
@@ -407,12 +482,26 @@ export async function deactivateActivationAction(formData: FormData) {
   await requireAdmin();
   const parsed = deactivateActivationSchema.parse(formObject(formData));
 
-  await prisma.licenseActivation.update({
+  const activation = await prisma.licenseActivation.update({
     where: { id: parsed.activationId },
+    include: { license: true },
     data: { status: "DEACTIVATED", deactivatedAt: new Date() },
   });
 
+  await prisma.auditLog.create({
+    data: {
+      licenseId: activation.licenseId,
+      action: "installation.deactivated",
+      actor: "admin",
+      details: {
+        instanceLabel: activation.instanceLabel,
+        keyPreview: activation.license.keyPreview,
+      },
+    },
+  });
+
   revalidatePath("/dashboard");
+  return { ok: true, message: "Installation deactivated." };
 }
 
 export async function assignLeadAction(formData: FormData) {
