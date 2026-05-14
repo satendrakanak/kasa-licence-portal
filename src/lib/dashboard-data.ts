@@ -16,16 +16,26 @@ type BreakdownRow = {
   label: string;
   count: number;
   revenue: number;
+  currency: string;
 };
 
 function addBreakdownRow(
   rows: Record<string, BreakdownRow>,
   key: string,
   revenue: number,
+  currency: string,
 ) {
-  rows[key] ??= { label: key, count: 0, revenue: 0 };
+  rows[key] ??= { label: key, count: 0, revenue: 0, currency };
   rows[key].count += 1;
   rows[key].revenue += revenue;
+}
+
+function getRevenueCurrency(licenses: Array<{ saleCurrency: string | null }>) {
+  const currencies = Array.from(
+    new Set(licenses.map((license) => license.saleCurrency || "INR")),
+  );
+
+  return currencies.length === 1 ? currencies[0] : "INR";
 }
 
 export async function getDashboardData() {
@@ -127,6 +137,7 @@ export async function getDashboardData() {
   const paidSalesLicenses = salesLicenses.filter(
     (license) => Number(license.saleAmount) > 0,
   );
+  const revenueCurrency = getRevenueCurrency(paidSalesLicenses);
   const totalRevenue = paidSalesLicenses.reduce(
     (sum, license) => sum + Number(license.saleAmount),
     0,
@@ -143,9 +154,10 @@ export async function getDashboardData() {
   const editionMap: Record<string, BreakdownRow> = {};
   for (const license of paidSalesLicenses) {
     const revenue = Number(license.saleAmount);
-    addBreakdownRow(channelMap, license.saleChannel || license.platform || "unknown", revenue);
-    addBreakdownRow(sourceMap, license.marketingSource || "unknown", revenue);
-    addBreakdownRow(editionMap, license.edition, revenue);
+    const currency = license.saleCurrency || revenueCurrency;
+    addBreakdownRow(channelMap, license.saleChannel || license.platform || "unknown", revenue, currency);
+    addBreakdownRow(sourceMap, license.marketingSource || "unknown", revenue, currency);
+    addBreakdownRow(editionMap, license.edition, revenue, currency);
   }
 
   const monthRows = Array.from({ length: 6 }, (_, index) => {
@@ -158,6 +170,7 @@ export async function getDashboardData() {
     return {
       label: getShortMonth(date),
       revenue: rows.reduce((sum, license) => sum + Number(license.saleAmount), 0),
+      currency: rows.length ? getRevenueCurrency(rows) : revenueCurrency,
       count: rows.length,
     };
   });
@@ -193,6 +206,7 @@ export async function getDashboardData() {
       averageOrderValue: paidSalesLicenses.length
         ? Math.round(totalRevenue / paidSalesLicenses.length)
         : 0,
+      revenueCurrency,
     },
     revenue: {
       monthRows,

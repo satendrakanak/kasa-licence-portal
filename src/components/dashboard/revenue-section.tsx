@@ -21,7 +21,7 @@ function BreakdownList({ rows }: { rows: BreakdownRow[] }) {
               {displayLabel(row.label)}
             </span>
             <span className="shrink-0 text-slate-400">
-              {formatMoney(row.revenue)} · {row.count}
+              {formatMoney(row.revenue, row.currency)} · {row.count}
             </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-slate-950">
@@ -54,7 +54,7 @@ export function RevenueSection({ revenue }: { revenue: DashboardData["revenue"] 
             return (
               <div key={row.label} className="flex h-full min-w-0 flex-col justify-end gap-3">
                 <div className="min-h-10 text-center text-xs text-slate-400">
-                  <p className="truncate">{formatMoney(row.revenue)}</p>
+                  <p className="truncate">{formatMoney(row.revenue, row.currency)}</p>
                   <p>{row.count} sale{row.count === 1 ? "" : "s"}</p>
                 </div>
                 <div className="flex h-44 items-end rounded-xl bg-slate-950 p-2">

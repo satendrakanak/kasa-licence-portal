@@ -77,17 +77,17 @@ export function OverviewSection({ metrics }: OverviewSectionProps) {
           <div className="grid gap-4 lg:grid-cols-3">
             <RevenueCard
               label="Month revenue"
-              value={formatMoney(metrics.monthRevenue)}
+              value={formatMoney(metrics.monthRevenue, metrics.revenueCurrency)}
               helper="Closed sales this month"
             />
             <RevenueCard
               label="Year revenue"
-              value={formatMoney(metrics.yearRevenue)}
+              value={formatMoney(metrics.yearRevenue, metrics.revenueCurrency)}
               helper="Closed sales this year"
             />
             <RevenueCard
               label="Avg order"
-              value={formatMoney(metrics.averageOrderValue)}
+              value={formatMoney(metrics.averageOrderValue, metrics.revenueCurrency)}
               helper="Across paid license sales"
             />
           </div>

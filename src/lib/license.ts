@@ -31,11 +31,26 @@ function isLicenseDateValid(expiresAt: Date | null) {
 }
 
 async function findLicenseByKey(input: Pick<ActivationInput, "licenseKey" | "productSlug">) {
-  return prisma.license.findFirst({
+  const keyHash = sha256(input.licenseKey);
+  const exactMatch = await prisma.license.findFirst({
     where: {
-      keyHash: sha256(input.licenseKey),
+      keyHash,
       product: { slug: input.productSlug },
     },
+    include: {
+      product: true,
+      activations: {
+        where: { status: "ACTIVE" },
+      },
+    },
+  });
+
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  return prisma.license.findUnique({
+    where: { keyHash },
     include: {
       product: true,
       activations: {
