@@ -25,7 +25,7 @@ type EnvatoSale = {
 function getEnvatoToken() {
   const token = process.env.ENVATO_PERSONAL_TOKEN;
   if (!token) {
-    throw new Error("ENVATO_PERSONAL_TOKEN is not configured.");
+    throw new Error("Envato activation is not configured.");
   }
 
   return token;
@@ -85,7 +85,7 @@ export async function verifyEnvatoPurchaseCode(purchaseCode: string) {
     {
       headers: {
         Authorization: `Bearer ${getEnvatoToken()}`,
-        "User-Agent": "Kasa Licence Portal",
+        "User-Agent": "CodeWithKasa Activation",
       },
       cache: "no-store",
     },
@@ -95,7 +95,7 @@ export async function verifyEnvatoPurchaseCode(purchaseCode: string) {
     return {
       ok: false as const,
       code: "ENVATO_PURCHASE_NOT_FOUND",
-      message: "Envato purchase code could not be verified for this author account.",
+      message: "Purchase code could not be verified. Please check the code and try again.",
     };
   }
 
@@ -103,7 +103,7 @@ export async function verifyEnvatoPurchaseCode(purchaseCode: string) {
     return {
       ok: false as const,
       code: "ENVATO_API_ERROR",
-      message: `Envato verification failed with status ${response.status}.`,
+      message: "Purchase code could not be verified right now. Please try again.",
     };
   }
 
@@ -152,7 +152,7 @@ export async function activateEnvatoPurchase(input: EnvatoActivationInput) {
     return {
       ok: false as const,
       code: "ENVATO_ITEM_NOT_CONFIGURED",
-      message: `Envato item ${verified.sale.itemId} is not mapped to a KASA product pricing row.`,
+      message: "This purchase is not available for activation yet. Please contact support.",
     };
   }
 
@@ -160,7 +160,7 @@ export async function activateEnvatoPurchase(input: EnvatoActivationInput) {
     return {
       ok: false as const,
       code: "PRODUCT_PRICE_INACTIVE",
-      message: "This product pricing is not active for new marketplace activations.",
+      message: "This product is not available for new activations. Please contact support.",
     };
   }
 
