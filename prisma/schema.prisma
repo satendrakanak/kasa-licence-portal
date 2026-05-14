@@ -96,6 +96,17 @@ model ProductPrice {
   @@index([edition, plan, currency])
 }
 
+model KasaModulePlan {
+  id        String      @id @default(cuid())
+  edition   KasaEdition @unique
+  features  Json
+  rules     Json
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([edition])
+}
+
 model License {
   id             String              @id @default(cuid())
   productId      String

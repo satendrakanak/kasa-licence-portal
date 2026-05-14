@@ -86,6 +86,12 @@ export const revokeLicenseAccessSchema = z.object({
   licenseId: z.string().min(1),
 });
 
+export const moduleManagementSchema = z.object({
+  edition: z.enum(["STARTER", "PLUS", "ENTERPRISE"]),
+  certificateRule: z.enum(["lecture_completion", "exam_pass"]),
+  features: z.array(z.string()).optional(),
+});
+
 export const publicLeadSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email(),

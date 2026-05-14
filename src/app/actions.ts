@@ -32,11 +32,18 @@ import {
   changePasswordSchema,
   deleteLicenseSchema,
   revokeLicenseAccessSchema,
+  moduleManagementSchema,
   leadAssignmentSchema,
   leadStatusUpdateSchema,
   deleteProductSchema,
   updateProductSchema,
 } from "@/lib/validators";
+import {
+  enforcePlanHierarchy,
+  getKasaModuleEntitlements,
+  KASA_MODULES,
+  saveKasaModuleEntitlements,
+} from "@/lib/kasa-modules";
 
 function formObject(formData: FormData) {
   return Object.fromEntries(formData.entries());
@@ -53,6 +60,10 @@ function getPlanExpiry(plan: PlanType, customDate?: string) {
 
 function optionalLimit(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function formArray(formData: FormData, key: string) {
+  return formData.getAll(key).map(String);
 }
 
 export async function setupAdminAction(formData: FormData) {
@@ -366,6 +377,33 @@ export async function updateLicenseStatusAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   return { ok: true, message: "License status updated." };
+}
+
+export async function updateKasaModulePlanAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = moduleManagementSchema.parse({
+    ...formObject(formData),
+    features: formArray(formData, "features"),
+  });
+  const selectedFeatures = new Set(parsed.features || []);
+  const current = await getKasaModuleEntitlements();
+  const next = current.map((entitlement) => {
+    if (entitlement.edition !== parsed.edition) return entitlement;
+
+    return {
+      ...entitlement,
+      features: Object.fromEntries(
+        KASA_MODULES.map((module) => [module.key, selectedFeatures.has(module.key)]),
+      ) as typeof entitlement.features,
+      rules: {
+        certificateRule: parsed.certificateRule,
+      },
+    };
+  });
+
+  await saveKasaModuleEntitlements(enforcePlanHierarchy(next));
+  revalidatePath("/dashboard/modules");
+  return { ok: true, message: "Module policy updated." };
 }
 
 export async function revokeLicenseAccessAction(formData: FormData) {

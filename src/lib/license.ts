@@ -2,6 +2,7 @@ import { SignJWT } from "jose";
 import { LicenseStatus } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { sha256 } from "@/lib/crypto";
+import { getKasaModuleEntitlement } from "@/lib/kasa-modules";
 import { prisma } from "@/lib/prisma";
 
 type ActivationInput = {
@@ -192,6 +193,7 @@ async function activateLicenseRecord(
     instanceId: input.instanceId,
     maxActivations: license.maxActivations,
   });
+  const entitlement = await getKasaModuleEntitlement(license.edition);
 
   return {
     ok: true as const,
@@ -208,6 +210,8 @@ async function activateLicenseRecord(
       limits: {
         ...getLicenseLimits(license),
       },
+      features: entitlement.features,
+      rules: entitlement.rules,
     },
     activation: {
       id: activation.id,

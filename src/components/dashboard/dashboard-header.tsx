@@ -29,6 +29,12 @@ export function DashboardHeader({ adminName }: DashboardHeaderProps) {
             Leads
           </Link>
           <Link
+            href="/dashboard/modules"
+            className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
+          >
+            Module management
+          </Link>
+          <Link
             href="/account/password"
             className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
           >
