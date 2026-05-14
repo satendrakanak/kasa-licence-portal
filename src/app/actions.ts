@@ -266,12 +266,15 @@ export async function toggleProductPriceStatusAction(formData: FormData) {
 export async function createLicenseAction(formData: FormData) {
   await requireAdmin();
   const parsed = licenseSchema.parse(formObject(formData));
-  const price = await prisma.productPrice.findUniqueOrThrow({
+  const price = await prisma.productPrice.findUnique({
     where: { id: parsed.productPriceId },
     include: { product: true },
   });
+  if (!price) {
+    return { ok: false, message: "Pricing could not be found." };
+  }
   if (!price.isActive || price.product.status !== "ACTIVE") {
-    redirect("/dashboard?error=inactive-price");
+    return { ok: false, message: "This pricing is not active for new licenses." };
   }
 
   const edition = price.edition;
@@ -305,7 +308,8 @@ export async function createLicenseAction(formData: FormData) {
     },
   });
 
-  redirect(`/dashboard?newKey=${encodeURIComponent(key)}`);
+  revalidatePath("/dashboard");
+  return { ok: true, message: "License generated.", licenseKey: key };
 }
 
 export async function changePasswordAction(formData: FormData) {
