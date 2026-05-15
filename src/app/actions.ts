@@ -37,7 +37,9 @@ import {
   leadStatusUpdateSchema,
   deleteProductSchema,
   updateProductSchema,
+  demoOperationsSchema,
 } from "@/lib/validators";
+import { saveDemoOperationsSettings } from "@/lib/demo-settings";
 import {
   enforcePlanHierarchy,
   getKasaModuleEntitlements,
@@ -419,6 +421,18 @@ export async function updateKasaModulePlanAction(formData: FormData) {
   await saveKasaModuleEntitlements(enforcePlanHierarchy(next));
   revalidatePath("/dashboard/modules");
   return { ok: true, message: "Module policy updated." };
+}
+
+export async function updateDemoOperationsAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = demoOperationsSchema.parse({
+    demoToursEnabled: formData.get("demoToursEnabled") === "on",
+    demoResetOnExpiry: formData.get("demoResetOnExpiry") === "on",
+  });
+
+  await saveDemoOperationsSettings(parsed);
+  revalidatePath("/dashboard/modules");
+  return { ok: true, message: "Demo operations updated." };
 }
 
 export async function revokeLicenseAccessAction(formData: FormData) {

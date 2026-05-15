@@ -101,6 +101,11 @@ export const moduleManagementSchema = z.object({
   features: z.array(z.string()).optional(),
 });
 
+export const demoOperationsSchema = z.object({
+  demoToursEnabled: z.coerce.boolean().default(false),
+  demoResetOnExpiry: z.coerce.boolean().default(false),
+});
+
 export const publicLeadSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email(),

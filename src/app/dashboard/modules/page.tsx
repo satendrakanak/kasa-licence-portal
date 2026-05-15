@@ -1,12 +1,17 @@
+import { DemoOperationsControls } from "@/components/demo-operations-controls";
 import { ModuleManagementControls } from "@/components/module-management-controls";
 import { requireAdmin } from "@/lib/auth";
+import { getDemoOperationsSettings } from "@/lib/demo-settings";
 import { getKasaModuleEntitlements } from "@/lib/kasa-modules";
 
 export const dynamic = "force-dynamic";
 
 export default async function ModuleManagementPage() {
   await requireAdmin();
-  const entitlements = await getKasaModuleEntitlements();
+  const [entitlements, demoSettings] = await Promise.all([
+    getKasaModuleEntitlements(),
+    getDemoOperationsSettings(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -23,6 +28,8 @@ export default async function ModuleManagementPage() {
           carried into Plus and Enterprise.
         </p>
       </section>
+
+      <DemoOperationsControls settings={demoSettings} />
 
       <ModuleManagementControls entitlements={entitlements} />
     </div>
