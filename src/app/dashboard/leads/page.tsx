@@ -13,6 +13,10 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
+function humanize(value: string) {
+  return value.replaceAll("-", " ");
+}
+
 export default async function LeadsDashboardPage() {
   await requireAdmin();
 
@@ -83,6 +87,9 @@ export default async function LeadsDashboardPage() {
                         Email sent
                       </span>
                     ) : null}
+                    <span className="rounded-full border border-sky-400/25 bg-sky-400/10 px-3 py-1 text-xs capitalize text-sky-200">
+                      {lead.leadType}
+                    </span>
                   </div>
 
                   <div className="mt-4 grid gap-3 text-sm text-slate-300 sm:grid-cols-2">
@@ -107,6 +114,51 @@ export default async function LeadsDashboardPage() {
                   <p className="mt-5 rounded-3xl border border-white/10 bg-slate-950/60 p-4 text-sm leading-7 text-slate-300">
                     {lead.message}
                   </p>
+
+                  <div className="mt-4 grid gap-3 text-xs text-slate-400 md:grid-cols-2">
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
+                      <span className="block font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Button
+                      </span>
+                      <span className="mt-1 block text-slate-200">
+                        {lead.ctaLabel || "Not captured"}
+                      </span>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
+                      <span className="block font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Source
+                      </span>
+                      <span className="mt-1 block capitalize text-slate-200">
+                        {humanize(lead.source)}
+                      </span>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-3 md:col-span-2">
+                      <span className="block font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Page URL
+                      </span>
+                      <span className="mt-1 block break-all text-slate-200">
+                        {lead.pageUrl || "Not captured"}
+                      </span>
+                    </div>
+                    {lead.demoUrl ? (
+                      <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-3 md:col-span-2">
+                        <span className="block font-semibold uppercase tracking-[0.18em] text-emerald-300">
+                          Demo access
+                        </span>
+                        <a
+                          href={lead.demoUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 block break-all text-emerald-100 underline-offset-4 hover:underline"
+                        >
+                          {lead.demoUrl}
+                        </a>
+                        <span className="mt-1 block text-emerald-200/70">
+                          Expires {lead.demoExpiresAt ? formatDate(lead.demoExpiresAt) : "after temporary access window"}
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
 
                   <div className="mt-4 text-xs text-slate-500">
                     Submitted {formatDate(lead.createdAt)} via {lead.source}

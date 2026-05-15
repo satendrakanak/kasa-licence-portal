@@ -213,6 +213,11 @@ model Lead {
   phone        String?
   message      String
   source       String     @default("marketing-site")
+  leadType     String     @default("enquiry")
+  ctaLabel     String?
+  pageUrl      String?
+  demoUrl      String?
+  demoExpiresAt DateTime?
   status       LeadStatus @default(NEW)
   assignedToId String?
   assignedTo   AdminUser? @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)

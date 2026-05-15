@@ -108,6 +108,11 @@ export const publicLeadSchema = z.object({
   phone: z.string().max(40).optional(),
   message: z.string().min(10).max(3000),
   source: z.string().max(100).optional().default("marketing-site"),
+  leadType: z.enum(["enquiry", "demo", "pricing", "support"]).optional().default("enquiry"),
+  ctaLabel: z.string().max(120).optional(),
+  pageUrl: z.string().url().max(500).optional(),
+  demoUrl: z.string().url().max(500).optional(),
+  demoExpiresAt: z.string().datetime().optional(),
 });
 
 export const leadAssignmentSchema = z.object({

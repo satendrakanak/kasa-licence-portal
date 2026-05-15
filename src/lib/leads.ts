@@ -8,6 +8,11 @@ type LeadInput = {
   phone?: string;
   message: string;
   source?: string;
+  leadType?: "enquiry" | "demo" | "pricing" | "support";
+  ctaLabel?: string;
+  pageUrl?: string;
+  demoUrl?: string;
+  demoExpiresAt?: string;
 };
 
 export async function getDefaultLeadAssignee() {
@@ -32,13 +37,26 @@ function nl2br(value: string) {
 function humanizeLeadSource(source: string) {
   const sourceMap: Record<string, string> = {
     "hero-demo-modal": "Hero demo modal",
+    "demo-tour": "Take a Tour demo form",
     "header-signup-modal": "Header sign-up modal",
+    "header-enquiry-modal": "Header enquiry button",
+    "hero-enquiry-modal": "Hero enquiry button",
+    "footer-enquiry-modal": "Footer enquiry button",
     "page-query-form": "Bottom query form",
     "kasa-marketing-site": "Marketing site form",
     debug: "Debug submit",
   };
 
   return sourceMap[source] ?? source.replaceAll("-", " ");
+}
+
+function formatExpiry(value: Date | string | null) {
+  if (!value) return null;
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(value));
 }
 
 function emailShell(content: string) {
@@ -60,7 +78,36 @@ function emailShell(content: string) {
 
 function customerLeadEmailHtml(lead: {
   name: string;
+  leadType: string;
+  demoUrl: string | null;
+  demoExpiresAt: Date | null;
 }) {
+  if (lead.leadType === "demo" && lead.demoUrl) {
+    const expiryText = formatExpiry(lead.demoExpiresAt);
+    return emailShell(`
+      <p style="margin:0 0 12px;font-size:13px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8ee7a6;">
+        Demo workspace ready
+      </p>
+      <h1 style="margin:0 0 14px;font-size:32px;line-height:1.2;color:#ffffff;">
+        Your KASA demo is ready, ${escapeHtml(lead.name)}.
+      </h1>
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.8;color:#cbd5e1;">
+        We prepared a temporary workspace so you can explore the admin panel, courses, orders, coupons, reports, and learner flow.
+      </p>
+      <a href="${escapeHtml(lead.demoUrl)}" style="display:inline-block;margin:0 0 22px;padding:14px 20px;border-radius:999px;background:#58c98a;color:#07111f;font-size:15px;font-weight:800;text-decoration:none;">
+        Open your demo
+      </a>
+      <div style="margin:0 0 24px;padding:18px 20px;border-radius:20px;background:linear-gradient(135deg,rgba(88,201,138,0.14),rgba(255,255,255,0.04));">
+        <p style="margin:0;font-size:15px;line-height:1.8;color:#dbeafe;">
+          This demo access is temporary${expiryText ? ` and expires around <strong style="color:#ffffff;">${escapeHtml(expiryText)}</strong>` : ""}. After expiry, demo data is cleaned automatically.
+        </p>
+      </div>
+      <p style="margin:0;font-size:14px;line-height:1.8;color:#94a3b8;">
+        If you want a guided walkthrough, reply to this email and our team will help you evaluate the right KASA plan.
+      </p>
+    `);
+  }
+
   return emailShell(`
     <p style="margin:0 0 12px;font-size:13px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#8ee7a6;">
       Query received
@@ -88,6 +135,11 @@ function internalLeadEmailHtml(lead: {
   institute: string | null;
   phone: string | null;
   source: string;
+  leadType: string;
+  ctaLabel: string | null;
+  pageUrl: string | null;
+  demoUrl: string | null;
+  demoExpiresAt: Date | null;
   message: string;
   assignedToName: string;
 }) {
@@ -107,7 +159,12 @@ function internalLeadEmailHtml(lead: {
         ["Institute", lead.institute ?? "Not provided"],
         ["Phone", lead.phone ?? "Not provided"],
         ["Assigned to", lead.assignedToName],
+        ["Lead type", lead.leadType],
         ["Source", humanizeLeadSource(lead.source)],
+        ["CTA", lead.ctaLabel ?? "Not provided"],
+        ["Page", lead.pageUrl ?? "Not provided"],
+        ["Demo link", lead.demoUrl ?? "Not applicable"],
+        ["Demo expires", formatExpiry(lead.demoExpiresAt) ?? "Not applicable"],
       ]
         .map(
           ([label, value]) => `
@@ -146,6 +203,11 @@ export async function createInboundLead(input: LeadInput) {
       phone: input.phone || null,
       message: input.message,
       source: input.source || "marketing-site",
+      leadType: input.leadType || "enquiry",
+      ctaLabel: input.ctaLabel || null,
+      pageUrl: input.pageUrl || null,
+      demoUrl: input.demoUrl || null,
+      demoExpiresAt: input.demoExpiresAt ? new Date(input.demoExpiresAt) : null,
       assignedToId: assignedTo?.id ?? null,
     },
     include: {
@@ -170,6 +232,11 @@ export async function createInboundLead(input: LeadInput) {
           institute: lead.institute,
           phone: lead.phone,
           source: lead.source,
+          leadType: lead.leadType,
+          ctaLabel: lead.ctaLabel,
+          pageUrl: lead.pageUrl,
+          demoUrl: lead.demoUrl,
+          demoExpiresAt: lead.demoExpiresAt,
           message: lead.message,
           assignedToName: lead.assignedTo?.name ?? "Unassigned",
         }),
@@ -180,7 +247,12 @@ export async function createInboundLead(input: LeadInput) {
           `Institute: ${lead.institute ?? "Not provided"}`,
           `Phone: ${lead.phone ?? "Not provided"}`,
           `Assigned to: ${lead.assignedTo?.name ?? "Unassigned"}`,
+          `Lead type: ${lead.leadType}`,
           `Source: ${lead.source}`,
+          `CTA: ${lead.ctaLabel ?? "Not provided"}`,
+          `Page: ${lead.pageUrl ?? "Not provided"}`,
+          `Demo link: ${lead.demoUrl ?? "Not applicable"}`,
+          `Demo expires: ${formatExpiry(lead.demoExpiresAt) ?? "Not applicable"}`,
           `Message: ${lead.message}`,
         ].join("\n"),
       });
@@ -188,15 +260,29 @@ export async function createInboundLead(input: LeadInput) {
 
     await sendEmail({
       to: [lead.email],
-      subject: "We received your KASA query",
+      subject:
+        lead.leadType === "demo"
+          ? "Your KASA demo workspace is ready"
+          : "We received your KASA query",
       html: customerLeadEmailHtml({
         name: lead.name,
+        leadType: lead.leadType,
+        demoUrl: lead.demoUrl,
+        demoExpiresAt: lead.demoExpiresAt,
       }),
-      text: [
-        "Thanks for reaching out to KASA.",
-        "We received your query and our team will review it shortly.",
-        "Our team will get back to you from hello@getkasa.in.",
-      ].join("\n"),
+      text:
+        lead.leadType === "demo" && lead.demoUrl
+          ? [
+              "Your KASA demo workspace is ready.",
+              `Demo link: ${lead.demoUrl}`,
+              `Expires: ${formatExpiry(lead.demoExpiresAt) ?? "Temporary access"}`,
+              "After expiry, demo data is cleaned automatically.",
+            ].join("\n")
+          : [
+              "Thanks for reaching out to KASA.",
+              "We received your query and our team will review it shortly.",
+              "Our team will get back to you from hello@getkasa.in.",
+            ].join("\n"),
     });
 
     emailedAt = new Date();
