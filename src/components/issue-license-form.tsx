@@ -83,6 +83,22 @@ export function IssueLicenseForm({ products }: IssueLicenseFormProps) {
         <input name="expiresAt" type="date" className={inputClass} />
         <input name="renewalUrl" type="url" placeholder="Renewal URL" className={`${inputClass} md:col-span-2`} />
         <textarea name="notes" placeholder="Internal notes" className={`${inputClass} min-h-24 md:col-span-2`} />
+        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-4 text-sm text-slate-200 md:col-span-2">
+          <input
+            name="isComplimentary"
+            type="checkbox"
+            className="mt-1 size-4 cursor-pointer rounded border-white/20 bg-slate-950 accent-emerald-400"
+          />
+          <span>
+            <span className="block font-semibold text-emerald-100">
+              Complimentary / internal key
+            </span>
+            <span className="mt-1 block text-slate-400">
+              Use this for free, support, internal, or manual goodwill keys. The license is generated normally,
+              but sale amount is saved as 0 and dashboard revenue will not include it.
+            </span>
+          </span>
+        </label>
         <button
           disabled={isPending}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2"

@@ -296,6 +296,7 @@ export async function createLicenseAction(formData: FormData) {
 
   const edition = price.edition;
   const key = createLicenseKey(`KASA-${edition}`);
+  const isComplimentary = parsed.isComplimentary;
 
   await prisma.license.create({
     data: {
@@ -306,12 +307,12 @@ export async function createLicenseAction(formData: FormData) {
       keyEncrypted: encryptLicenseKey(key),
       buyerName: parsed.buyerName || null,
       buyerEmail: parsed.buyerEmail.toLowerCase(),
-      platform: parsed.platform,
-      purchaseRef: parsed.purchaseRef || null,
-      saleAmount: price.amount,
+      platform: isComplimentary ? "internal" : parsed.platform,
+      purchaseRef: parsed.purchaseRef || (isComplimentary ? "complimentary-key" : null),
+      saleAmount: isComplimentary ? 0 : price.amount,
       saleCurrency: price.currency,
-      saleChannel: parsed.saleChannel,
-      marketingSource: parsed.marketingSource || null,
+      saleChannel: isComplimentary ? "internal-free" : parsed.saleChannel,
+      marketingSource: isComplimentary ? "internal" : parsed.marketingSource || null,
       soldAt: parsed.soldAt ? new Date(parsed.soldAt) : new Date(),
       edition,
       plan: price.plan,
@@ -321,7 +322,11 @@ export async function createLicenseAction(formData: FormData) {
       userLimit: price.userLimit,
       courseLimit: price.courseLimit,
       facultyLimit: price.facultyLimit,
-      notes: parsed.notes || null,
+      notes: isComplimentary
+        ? [parsed.notes, "Complimentary/internal key. Revenue excluded."]
+            .filter(Boolean)
+            .join("\n")
+        : parsed.notes || null,
     },
   });
 

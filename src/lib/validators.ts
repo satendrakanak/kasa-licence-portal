@@ -5,6 +5,11 @@ const optionalLimit = z.preprocess(
   z.coerce.number().int().min(0).optional(),
 );
 
+const checkboxBoolean = z.preprocess(
+  (value) => value === "on" || value === "true" || value === true,
+  z.boolean().default(false),
+);
+
 export const setupSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
@@ -67,6 +72,7 @@ export const licenseSchema = z.object({
   expiresAt: z.string().optional(),
   renewalUrl: z.string().url().optional().or(z.literal("")),
   notes: z.string().optional(),
+  isComplimentary: checkboxBoolean,
 });
 
 export const licenseStatusSchema = z.object({
