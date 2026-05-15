@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "kasa-licence-portal",
+      name: "kasa-admin-portal",
       script: "npm",
       args: "run start",
       cwd: "/opt/kasa/kasa-licence-portal",
